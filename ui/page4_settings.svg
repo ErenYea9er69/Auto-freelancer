@@ -1,0 +1,195 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+<defs>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&amp;family=DM+Sans:wght@300;400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap');
+text{font-family:'DM Sans',sans-serif}
+.syne{font-family:'Syne',sans-serif}
+.mono{font-family:'JetBrains Mono',monospace}
+.t-primary{fill:#E2E2EA}.t-secondary{fill:#7A7A96}.t-muted{fill:#44445A}
+.t-accent{fill:#00FFB2}.t-warm{fill:#FFC078}.t-hot{fill:#FF6B6B}.t-purple{fill:#6C5CE7}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.pulse{animation:pulse 2s ease-in-out infinite}
+</style>
+<linearGradient id="g1" x1="0" y1="0" x2="1440" y2="900" gradientUnits="userSpaceOnUse">
+<stop offset="0%" stop-color="#07070D"/><stop offset="100%" stop-color="#0D0D1A"/>
+</linearGradient>
+<linearGradient id="accent-g" x1="0%" y1="0%" x2="100%" y2="0%">
+<stop offset="0%" stop-color="#00FFB2"/><stop offset="100%" stop-color="#6C5CE7"/>
+</linearGradient>
+<linearGradient id="card-g" x1="0%" y1="0%" x2="0%" y2="100%">
+<stop offset="0%" stop-color="#1A1A2E"/><stop offset="100%" stop-color="#12121F"/>
+</linearGradient>
+<filter id="shadow"><feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000" flood-opacity=".4"/></filter>
+<filter id="blur1"><feGaussianBlur stdDeviation="60"/></filter>
+<pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+<path d="M40 0V40H0" fill="none" stroke="#1A1A2E" stroke-width=".5"/>
+</pattern>
+</defs>
+
+<!-- BG -->
+<rect width="1440" height="900" fill="url(#g1)"/>
+<rect width="1440" height="900" fill="url(#grid)" opacity=".2"/>
+<circle cx="200" cy="400" r="200" fill="#6C5CE7" opacity=".03" filter="url(#blur1)"/>
+<circle cx="1200" cy="300" r="180" fill="#00FFB2" opacity=".02" filter="url(#blur1)"/>
+
+<!-- ═══ TOP BAR ═══ -->
+<rect x="0" y="0" width="1440" height="64" fill="#0A0A14" opacity=".9"/>
+<line x1="0" y1="64" x2="1440" y2="64" stroke="#1E1E32"/>
+<rect x="24" y="16" width="8" height="32" rx="2" fill="#00FFB2"/>
+<rect x="36" y="22" width="8" height="20" rx="2" fill="#00FFB2" opacity=".6"/>
+<rect x="48" y="28" width="8" height="8" rx="2" fill="#00FFB2" opacity=".3"/>
+<text x="68" y="40" class="syne t-primary" font-size="18" font-weight="800" letter-spacing="3">AUTOPILOT</text>
+<circle cx="210" cy="32" r="4" fill="#00FFB2" class="pulse"/>
+<text x="222" y="37" class="mono t-accent" font-size="11">SYSTEM ACTIVE</text>
+<text x="1050" y="37" class="t-muted" font-size="13">Dashboard</text>
+<text x="1140" y="37" class="t-muted" font-size="13">Leads</text>
+<text x="1200" y="37" class="t-primary" font-size="13" font-weight="600">Settings</text>
+<rect x="1196" y="42" width="56" height="2" rx="1" fill="#00FFB2"/>
+<circle cx="1370" cy="32" r="16" fill="#6C5CE7"/>
+<text x="1363" y="38" fill="#fff" class="syne" font-size="14" font-weight="700">A</text>
+
+<!-- ═══ LEFT NAV ═══ -->
+<g transform="translate(40, 88)">
+<text x="0" y="24" class="syne t-primary" font-size="24" font-weight="800">Settings</text>
+<text x="0" y="46" class="t-secondary" font-size="13">Configure your pipeline</text>
+
+<!-- Nav items -->
+<rect x="0" y="68" width="200" height="40" rx="8" fill="#00FFB2" opacity=".08"/>
+<rect x="0" y="68" width="3" height="40" rx="2" fill="#00FFB2"/>
+<text x="20" y="94" class="t-accent" font-size="13" font-weight="500">Profile &amp; Branding</text>
+
+<text x="20" y="134" class="t-secondary" font-size="13">API Connections</text>
+<text x="20" y="170" class="t-muted" font-size="13">Email Settings</text>
+<text x="20" y="206" class="t-muted" font-size="13">Automation Rules</text>
+<text x="20" y="242" class="t-muted" font-size="13">Webhook URLs</text>
+<text x="20" y="278" class="t-muted" font-size="13">Scheduler</text>
+</g>
+
+<!-- ═══ MAIN — PROFILE & BRANDING ═══ -->
+<g transform="translate(300, 88)">
+<text x="0" y="24" class="syne t-primary" font-size="18" font-weight="700">Profile &amp; Branding</text>
+<text x="0" y="44" class="t-secondary" font-size="12">These details shape how AI writes your emails</text>
+
+<!-- Card 1: Identity -->
+<rect x="0" y="64" width="520" height="280" rx="14" fill="url(#card-g)" stroke="#2A2A42" stroke-width="1" filter="url(#shadow)"/>
+<text x="24" y="96" class="t-muted mono" font-size="10" letter-spacing="1">YOUR IDENTITY</text>
+
+<!-- Field: Name -->
+<text x="24" y="126" class="t-secondary" font-size="12">Your Name</text>
+<rect x="24" y="134" width="220" height="40" rx="8" fill="#0F0F1A" stroke="#2A2A42" stroke-width="1"/>
+<text x="40" y="160" class="t-primary" font-size="13">Alex</text>
+
+<!-- Field: Business -->
+<text x="264" y="126" class="t-secondary" font-size="12">Business Name</text>
+<rect x="264" y="134" width="232" height="40" rx="8" fill="#0F0F1A" stroke="#2A2A42" stroke-width="1"/>
+<text x="280" y="160" class="t-primary" font-size="13">Alex Design Studio</text>
+
+<!-- Field: Services -->
+<text x="24" y="198" class="t-secondary" font-size="12">Services You Offer</text>
+<rect x="24" y="206" width="472" height="40" rx="8" fill="#0F0F1A" stroke="#2A2A42" stroke-width="1"/>
+<text x="40" y="232" class="t-primary" font-size="13">web design, brand identity, UI/UX</text>
+
+<!-- Field: Calendar -->
+<text x="24" y="268" class="t-secondary" font-size="12">Calendar Booking Link</text>
+<rect x="24" y="276" width="472" height="40" rx="8" fill="#0F0F1A" stroke="#2A2A42" stroke-width="1"/>
+<text x="40" y="302" class="t-accent" font-size="13">https://calendly.com/alex-studio/30min</text>
+</g>
+
+<!-- Card 2: API Connections -->
+<g transform="translate(300, 460)">
+<rect x="0" y="0" width="520" height="310" rx="14" fill="url(#card-g)" stroke="#2A2A42" stroke-width="1" filter="url(#shadow)"/>
+<text x="24" y="32" class="t-muted mono" font-size="10" letter-spacing="1">API CONNECTIONS</text>
+
+<!-- Claude API -->
+<rect x="24" y="50" width="472" height="64" rx="10" fill="#0F0F1A" stroke="#2A2A42" stroke-width="1"/>
+<text x="44" y="72" font-size="16">🧠</text>
+<text x="68" y="74" class="t-primary" font-size="13" font-weight="500">Claude API (Anthropic)</text>
+<circle cx="440" cy="70" r="6" fill="#00FFB2"/>
+<text x="452" y="74" class="t-accent mono" font-size="10">Connected</text>
+<text x="68" y="96" class="mono t-muted" font-size="10">sk-ant-•••••••••••••4x8Q</text>
+<text x="380" y="96" class="t-secondary" font-size="10">claude-sonnet-4-20250514</text>
+
+<!-- Resend -->
+<rect x="24" y="126" width="472" height="64" rx="10" fill="#0F0F1A" stroke="#2A2A42" stroke-width="1"/>
+<text x="44" y="148" font-size="16">📧</text>
+<text x="68" y="150" class="t-primary" font-size="13" font-weight="500">Resend Email</text>
+<circle cx="440" cy="146" r="6" fill="#00FFB2"/>
+<text x="452" y="150" class="t-accent mono" font-size="10">Connected</text>
+<text x="68" y="172" class="mono t-muted" font-size="10">re_•••••••••••7mKp</text>
+<text x="340" y="172" class="t-secondary" font-size="10">hello@alexdesign.studio</text>
+
+<!-- Google Sheets -->
+<rect x="24" y="202" width="472" height="64" rx="10" fill="#0F0F1A" stroke="#2A2A42" stroke-width="1"/>
+<text x="44" y="224" font-size="16">📊</text>
+<text x="68" y="226" class="t-primary" font-size="13" font-weight="500">Google Sheets</text>
+<circle cx="440" cy="222" r="6" fill="#00FFB2"/>
+<text x="452" y="226" class="t-accent mono" font-size="10">Connected</text>
+<text x="68" y="248" class="mono t-muted" font-size="10">Lead Pipeline 2026</text>
+<text x="340" y="248" class="t-secondary" font-size="10">33 rows · Last sync 2m ago</text>
+
+<!-- Save button -->
+<rect x="340" y="278" width="156" height="24" rx="6" fill="#00FFB2" opacity=".1" stroke="#00FFB2" stroke-width="1" stroke-opacity=".4"/>
+<text x="374" y="295" class="t-accent" font-size="11" font-weight="500">Save Changes</text>
+</g>
+
+<!-- ═══ RIGHT SIDE — AUTOMATION RULES ═══ -->
+<g transform="translate(860, 88)">
+<text x="0" y="24" class="syne t-primary" font-size="18" font-weight="700">Automation Rules</text>
+<text x="0" y="44" class="t-secondary" font-size="12">Control how the pipeline behaves</text>
+
+<!-- Rule card: Follow-up timing -->
+<rect x="0" y="64" width="520" height="168" rx="14" fill="url(#card-g)" stroke="#2A2A42" stroke-width="1" filter="url(#shadow)"/>
+<text x="24" y="96" class="t-muted mono" font-size="10" letter-spacing="1">FOLLOW-UP TIMING</text>
+
+<!-- Toggle row 1 -->
+<text x="24" y="126" class="t-primary" font-size="13">Follow-up #1 after</text>
+<rect x="180" y="112" width="72" height="28" rx="6" fill="#0F0F1A" stroke="#2A2A42" stroke-width="1"/>
+<text x="200" y="132" class="mono t-accent" font-size="13">48h</text>
+<text x="264" y="126" class="t-secondary" font-size="13">of no response</text>
+
+<!-- Toggle row 2 -->
+<text x="24" y="160" class="t-primary" font-size="13">Follow-up #2 (final) at</text>
+<rect x="200" y="146" width="72" height="28" rx="6" fill="#0F0F1A" stroke="#2A2A42" stroke-width="1"/>
+<text x="216" y="166" class="mono t-accent" font-size="13">Day 5</text>
+<text x="284" y="160" class="t-secondary" font-size="13">then stop</text>
+
+<!-- Max followups -->
+<text x="24" y="194" class="t-primary" font-size="13">Max follow-ups per lead</text>
+<rect x="220" y="180" width="52" height="28" rx="6" fill="#0F0F1A" stroke="#2A2A42" stroke-width="1"/>
+<text x="240" y="200" class="mono t-accent" font-size="13">2</text>
+<text x="284" y="194" class="t-muted" font-size="12">then → human review</text>
+
+<!-- Rule card: Schedule -->
+<rect x="0" y="250" width="520" height="148" rx="14" fill="url(#card-g)" stroke="#2A2A42" stroke-width="1" filter="url(#shadow)"/>
+<text x="24" y="282" class="t-muted mono" font-size="10" letter-spacing="1">SCHEDULER</text>
+
+<text x="24" y="312" class="t-primary" font-size="13">Lead follow-ups run daily at</text>
+<rect x="260" y="298" width="82" height="28" rx="6" fill="#0F0F1A" stroke="#2A2A42" stroke-width="1"/>
+<text x="274" y="318" class="mono t-accent" font-size="13">9:00 AM</text>
+<text x="350" y="312" class="t-muted" font-size="12">UTC</text>
+
+<text x="24" y="346" class="t-primary" font-size="13">Proposal follow-ups at</text>
+<rect x="220" y="332" width="82" height="28" rx="6" fill="#0F0F1A" stroke="#2A2A42" stroke-width="1"/>
+<text x="234" y="352" class="mono t-accent" font-size="13">9:30 AM</text>
+
+<text x="24" y="380" class="t-primary" font-size="13">Stale-lead flagging at</text>
+<rect x="210" y="366" width="92" height="28" rx="6" fill="#0F0F1A" stroke="#2A2A42" stroke-width="1"/>
+<text x="222" y="386" class="mono t-accent" font-size="13">10:00 AM</text>
+
+<!-- Webhook URLs card -->
+<rect x="0" y="416" width="520" height="180" rx="14" fill="url(#card-g)" stroke="#2A2A42" stroke-width="1" filter="url(#shadow)"/>
+<text x="24" y="448" class="t-muted mono" font-size="10" letter-spacing="1">WEBHOOK ENDPOINTS</text>
+<text x="24" y="466" class="t-secondary" font-size="11">Connect your form &amp; Calendly to these URLs</text>
+
+<text x="24" y="496" class="t-secondary" font-size="11">New Inquiry:</text>
+<rect x="24" y="504" width="472" height="28" rx="6" fill="#0F0F1A" stroke="#1E1E32" stroke-width="1"/>
+<text x="36" y="524" class="mono t-accent" font-size="10">https://your-app.railway.app/webhook/inquiry</text>
+
+<text x="24" y="552" class="t-secondary" font-size="11">Call Booked:</text>
+<rect x="24" y="560" width="472" height="28" rx="6" fill="#0F0F1A" stroke="#1E1E32" stroke-width="1"/>
+<text x="36" y="580" class="mono t-purple" font-size="10">https://your-app.railway.app/webhook/call-booked</text>
+</g>
+
+<!-- Accent bottom line -->
+<rect x="0" y="896" width="1440" height="4" fill="url(#accent-g)"/>
+</svg>

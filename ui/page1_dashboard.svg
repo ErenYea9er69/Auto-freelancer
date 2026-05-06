@@ -1,0 +1,291 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1440 900" width="1440" height="900">
+<defs>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&amp;family=DM+Sans:wght@300;400;500;600&amp;family=JetBrains+Mono:wght@400;500&amp;display=swap');
+text{font-family:'DM Sans',sans-serif}
+.syne{font-family:'Syne',sans-serif}
+.mono{font-family:'JetBrains Mono',monospace}
+.t-primary{fill:#E2E2EA}.t-secondary{fill:#7A7A96}.t-muted{fill:#44445A}
+.t-accent{fill:#00FFB2}.t-warm{fill:#FFC078}.t-hot{fill:#FF6B6B}.t-purple{fill:#6C5CE7}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+@keyframes glow{0%,100%{filter:drop-shadow(0 0 4px #00FFB2)}50%{filter:drop-shadow(0 0 12px #00FFB2)}}
+.pulse{animation:pulse 2s ease-in-out infinite}
+.glow{animation:glow 3s ease-in-out infinite}
+</style>
+<linearGradient id="g1" x1="0" y1="0" x2="1440" y2="900" gradientUnits="userSpaceOnUse">
+<stop offset="0%" stop-color="#07070D"/><stop offset="100%" stop-color="#0D0D1A"/>
+</linearGradient>
+<linearGradient id="accent-g" x1="0%" y1="0%" x2="100%" y2="0%">
+<stop offset="0%" stop-color="#00FFB2"/><stop offset="100%" stop-color="#6C5CE7"/>
+</linearGradient>
+<linearGradient id="card-g" x1="0%" y1="0%" x2="0%" y2="100%">
+<stop offset="0%" stop-color="#1A1A2E"/><stop offset="100%" stop-color="#12121F"/>
+</linearGradient>
+<filter id="blur1"><feGaussianBlur stdDeviation="60"/></filter>
+<filter id="shadow"><feDropShadow dx="0" dy="4" stdDeviation="12" flood-color="#000" flood-opacity=".4"/></filter>
+<pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+<path d="M40 0V40H0" fill="none" stroke="#1A1A2E" stroke-width=".5"/>
+</pattern>
+</defs>
+
+<!-- BG -->
+<rect width="1440" height="900" fill="url(#g1)"/>
+<rect width="1440" height="900" fill="url(#grid)" opacity=".3"/>
+<!-- Ambient glow blobs -->
+<circle cx="300" cy="200" r="200" fill="#00FFB2" opacity=".03" filter="url(#blur1)"/>
+<circle cx="1100" cy="600" r="250" fill="#6C5CE7" opacity=".04" filter="url(#blur1)"/>
+
+<!-- ═══ TOP BAR ═══ -->
+<rect x="0" y="0" width="1440" height="64" fill="#0A0A14" opacity=".9"/>
+<line x1="0" y1="64" x2="1440" y2="64" stroke="#1E1E32" stroke-width="1"/>
+<!-- Logo -->
+<rect x="24" y="16" width="8" height="32" rx="2" fill="#00FFB2"/>
+<rect x="36" y="22" width="8" height="20" rx="2" fill="#00FFB2" opacity=".6"/>
+<rect x="48" y="28" width="8" height="8" rx="2" fill="#00FFB2" opacity=".3"/>
+<text x="68" y="40" class="syne t-primary" font-size="18" font-weight="800" letter-spacing="3">AUTOPILOT</text>
+
+<!-- Top bar status -->
+<circle cx="210" cy="32" r="4" fill="#00FFB2" class="pulse"/>
+<text x="222" y="37" class="mono t-accent" font-size="11">SYSTEM ACTIVE</text>
+
+<!-- Top right nav -->
+<text x="1050" y="37" class="t-secondary" font-size="13" font-weight="500">Dashboard</text>
+<text x="1140" y="37" class="t-muted" font-size="13">Leads</text>
+<text x="1200" y="37" class="t-muted" font-size="13">Settings</text>
+<!-- Notification bell -->
+<circle cx="1290" cy="32" r="14" fill="#1A1A2E" stroke="#2A2A42" stroke-width="1"/>
+<text x="1285" y="37" font-size="13">🔔</text>
+<circle cx="1298" cy="24" r="5" fill="#FF6B6B"/>
+<text x="1295" y="28" fill="#fff" font-size="8" font-weight="700">3</text>
+<!-- Avatar -->
+<circle cx="1370" cy="32" r="16" fill="#6C5CE7"/>
+<text x="1363" y="38" fill="#fff" class="syne" font-size="14" font-weight="700">A</text>
+
+<!-- ═══ SIDEBAR ═══ -->
+<rect x="0" y="64" width="220" height="836" fill="#0A0A12"/>
+<line x1="220" y1="64" x2="220" y2="900" stroke="#1E1E32" stroke-width="1"/>
+
+<!-- Pipeline stages -->
+<text x="24" y="104" class="t-muted mono" font-size="10" letter-spacing="2">PIPELINE STAGES</text>
+
+<!-- Stage nodes with connecting line -->
+<line x1="44" y1="130" x2="44" y2="520" stroke="#1E1E32" stroke-width="2"/>
+
+<!-- Stage 1: New -->
+<circle cx="44" cy="148" r="10" fill="#00FFB2" class="glow"/>
+<circle cx="44" cy="148" r="5" fill="#07070D"/>
+<text x="66" y="144" class="t-primary" font-size="13" font-weight="500">New Inquiries</text>
+<text x="66" y="160" class="mono t-accent" font-size="11">4</text>
+
+<!-- Stage 2: Qualified -->
+<circle cx="44" cy="218" r="10" fill="#6C5CE7" stroke="#6C5CE7" stroke-width="2" fill-opacity=".2"/>
+<text x="66" y="214" class="t-primary" font-size="13" font-weight="500">Qualified</text>
+<text x="66" y="230" class="mono t-purple" font-size="11">7</text>
+
+<!-- Stage 3: Follow-up -->
+<circle cx="44" cy="288" r="10" fill="#FFC078" stroke="#FFC078" stroke-width="2" fill-opacity=".2"/>
+<text x="66" y="284" class="t-primary" font-size="13" font-weight="500">Follow-up</text>
+<text x="66" y="300" class="mono t-warm" font-size="11">3</text>
+
+<!-- Stage 4: Proposal -->
+<circle cx="44" cy="358" r="10" fill="#1E1E32" stroke="#7A7A96" stroke-width="2"/>
+<text x="66" y="354" class="t-primary" font-size="13" font-weight="500">Proposal Sent</text>
+<text x="66" y="370" class="mono t-secondary" font-size="11">5</text>
+
+<!-- Stage 5: Closing -->
+<circle cx="44" cy="428" r="10" fill="#1E1E32" stroke="#7A7A96" stroke-width="2"/>
+<text x="66" y="424" class="t-primary" font-size="13" font-weight="500">Closing</text>
+<text x="66" y="440" class="mono t-secondary" font-size="11">2</text>
+
+<!-- Stage 6: Won -->
+<circle cx="44" cy="498" r="10" fill="#1E1E32" stroke="#7A7A96" stroke-width="2"/>
+<text x="66" y="494" class="t-primary" font-size="13" font-weight="500">Won / Onboarded</text>
+<text x="66" y="510" class="mono t-secondary" font-size="11">12</text>
+
+<!-- Sidebar bottom -->
+<line x1="16" y1="760" x2="204" y2="760" stroke="#1E1E32"/>
+<text x="24" y="790" class="t-muted mono" font-size="10" letter-spacing="2">NEXT JOB</text>
+<text x="24" y="812" class="t-secondary" font-size="12">Follow-ups run in</text>
+<text x="24" y="832" class="mono t-accent" font-size="16" font-weight="500">04h 23m</text>
+
+<!-- ═══ MAIN CONTENT ═══ -->
+
+<!-- Metric Cards Row -->
+<g transform="translate(244, 84)">
+<!-- Card 1: Response Time -->
+<rect width="270" height="110" rx="12" fill="url(#card-g)" stroke="#2A2A42" stroke-width="1" filter="url(#shadow)"/>
+<text x="20" y="32" class="t-muted" font-size="12" font-weight="500">AVG RESPONSE TIME</text>
+<text x="20" y="72" class="syne t-primary" font-size="36" font-weight="700">1.4</text>
+<text x="90" y="72" class="t-secondary" font-size="16">min</text>
+<rect x="20" y="88" width="60" height="4" rx="2" fill="#00FFB2" opacity=".8"/>
+<text x="170" y="72" class="mono t-accent" font-size="12">↓ 32%</text>
+</g>
+
+<g transform="translate(534, 84)">
+<!-- Card 2: Active Leads -->
+<rect width="270" height="110" rx="12" fill="url(#card-g)" stroke="#2A2A42" stroke-width="1" filter="url(#shadow)"/>
+<text x="20" y="32" class="t-muted" font-size="12" font-weight="500">ACTIVE LEADS</text>
+<text x="20" y="72" class="syne t-primary" font-size="36" font-weight="700">21</text>
+<text x="70" y="72" class="t-secondary" font-size="16">leads</text>
+<rect x="20" y="88" width="100" height="4" rx="2" fill="#6C5CE7" opacity=".8"/>
+<text x="170" y="72" class="mono t-purple" font-size="12">+6 this week</text>
+</g>
+
+<g transform="translate(824, 84)">
+<!-- Card 3: Proposals Out -->
+<rect width="270" height="110" rx="12" fill="url(#card-g)" stroke="#2A2A42" stroke-width="1" filter="url(#shadow)"/>
+<text x="20" y="32" class="t-muted" font-size="12" font-weight="500">PROPOSALS OUT</text>
+<text x="20" y="72" class="syne t-primary" font-size="36" font-weight="700">5</text>
+<text x="50" y="72" class="t-secondary" font-size="16">pending</text>
+<rect x="20" y="88" width="80" height="4" rx="2" fill="#FFC078" opacity=".8"/>
+<text x="170" y="72" class="mono t-warm" font-size="12">$18.5k value</text>
+</g>
+
+<g transform="translate(1114, 84)">
+<!-- Card 4: Revenue -->
+<rect width="270" height="110" rx="12" fill="url(#card-g)" stroke="#2A2A42" stroke-width="1" filter="url(#shadow)"/>
+<text x="20" y="32" class="t-muted" font-size="12" font-weight="500">REVENUE (30D)</text>
+<text x="20" y="72" class="syne t-primary" font-size="36" font-weight="700">$14.2k</text>
+<rect x="20" y="88" width="140" height="4" rx="2" fill="#00FFB2" opacity=".8"/>
+<text x="170" y="72" class="mono t-accent" font-size="12">↑ 24%</text>
+</g>
+
+<!-- ═══ LEAD CARDS SECTION ═══ -->
+<text x="260" y="232" class="syne t-primary" font-size="18" font-weight="700">Recent Leads</text>
+<text x="260" y="250" class="t-secondary" font-size="12">AI-qualified and auto-responding</text>
+
+<!-- Lead Card 1 — HOT -->
+<g transform="translate(244, 268)">
+<rect width="370" height="140" rx="12" fill="url(#card-g)" stroke="#2A2A42" stroke-width="1" filter="url(#shadow)"/>
+<rect x="0" y="0" width="4" height="140" rx="2" fill="#FF6B6B"/>
+<circle cx="32" cy="36" r="18" fill="#FF6B6B" opacity=".15"/>
+<text x="25" y="42" font-size="16">🔥</text>
+<text x="60" y="34" class="t-primary" font-size="14" font-weight="600">Sarah Chen</text>
+<rect x="160" y="22" width="40" height="18" rx="9" fill="#FF6B6B" opacity=".15"/>
+<text x="168" y="35" class="t-hot mono" font-size="9" font-weight="500">HOT</text>
+<text x="60" y="52" class="t-secondary" font-size="11">Complete rebrand — logo, website, guidelines</text>
+<text x="60" y="72" class="mono t-muted" font-size="10">Budget: $5,000 · Timeline: 6 weeks</text>
+<line x1="16" y1="90" x2="354" y2="90" stroke="#1E1E32"/>
+<circle cx="32" cy="112" r="6" fill="#00FFB2" opacity=".6"/>
+<text x="44" y="116" class="t-accent mono" font-size="10">Acknowledgment sent 2m ago</text>
+<text x="280" y="116" class="t-muted mono" font-size="10">📅 Link sent</text>
+</g>
+
+<!-- Lead Card 2 — WARM -->
+<g transform="translate(244, 424)">
+<rect width="370" height="140" rx="12" fill="url(#card-g)" stroke="#2A2A42" stroke-width="1" filter="url(#shadow)"/>
+<rect x="0" y="0" width="4" height="140" rx="2" fill="#FFC078"/>
+<circle cx="32" cy="36" r="18" fill="#FFC078" opacity=".15"/>
+<text x="24" y="42" font-size="16">💡</text>
+<text x="60" y="34" class="t-primary" font-size="14" font-weight="600">Marcus Rivera</text>
+<rect x="186" y="22" width="52" height="18" rx="9" fill="#FFC078" opacity=".15"/>
+<text x="193" y="35" class="t-warm mono" font-size="9" font-weight="500">WARM</text>
+<text x="60" y="52" class="t-secondary" font-size="11">Need help with social media strategy</text>
+<text x="60" y="72" class="mono t-muted" font-size="10">Budget: Not specified · Timeline: ASAP</text>
+<line x1="16" y1="90" x2="354" y2="90" stroke="#1E1E32"/>
+<circle cx="32" cy="112" r="6" fill="#FFC078" opacity=".6"/>
+<text x="44" y="116" class="t-warm mono" font-size="10">Qualifying question sent 1h ago</text>
+<text x="280" y="116" class="t-muted mono" font-size="10">Awaiting</text>
+</g>
+
+<!-- Lead Card 3 — FOLLOWUP -->
+<g transform="translate(244, 580)">
+<rect width="370" height="140" rx="12" fill="url(#card-g)" stroke="#2A2A42" stroke-width="1" filter="url(#shadow)"/>
+<rect x="0" y="0" width="4" height="140" rx="2" fill="#6C5CE7"/>
+<circle cx="32" cy="36" r="18" fill="#6C5CE7" opacity=".15"/>
+<text x="24" y="42" font-size="16">⏳</text>
+<text x="60" y="34" class="t-primary" font-size="14" font-weight="600">Aisha Patel</text>
+<rect x="168" y="22" width="70" height="18" rx="9" fill="#6C5CE7" opacity=".15"/>
+<text x="174" y="35" class="t-purple mono" font-size="9" font-weight="500">FOLLOW-UP</text>
+<text x="60" y="52" class="t-secondary" font-size="11">E-commerce site with custom CMS</text>
+<text x="60" y="72" class="mono t-muted" font-size="10">Budget: $3,500 · Timeline: 8 weeks</text>
+<line x1="16" y1="90" x2="354" y2="90" stroke="#1E1E32"/>
+<circle cx="32" cy="112" r="6" fill="#6C5CE7" opacity=".6"/>
+<text x="44" y="116" class="t-purple mono" font-size="10">Follow-up #1 sent 2d ago</text>
+<text x="270" y="116" class="t-muted mono" font-size="10">Day 5 queued</text>
+</g>
+
+<!-- ═══ RIGHT PANEL — Activity Feed ═══ -->
+<g transform="translate(640, 268)">
+<rect width="370" height="452" rx="12" fill="url(#card-g)" stroke="#2A2A42" stroke-width="1" filter="url(#shadow)"/>
+<text x="20" y="32" class="syne t-primary" font-size="15" font-weight="700">Live Activity</text>
+<text x="280" y="32" class="mono t-accent" font-size="10" class="pulse">● LIVE</text>
+
+<!-- Activity items -->
+<g transform="translate(20, 52)">
+<circle cx="8" cy="10" r="4" fill="#00FFB2"/>
+<text x="20" y="14" class="t-primary" font-size="12">AI sent acknowledgment to Sarah Chen</text>
+<text x="20" y="30" class="mono t-muted" font-size="10">2 minutes ago</text>
+</g>
+<line x1="20" y1="105" x2="350" y2="105" stroke="#1E1E32"/>
+<g transform="translate(20, 115)">
+<circle cx="8" cy="10" r="4" fill="#6C5CE7"/>
+<text x="20" y="14" class="t-primary" font-size="12">Lead qualified: Marcus Rivera → Warm</text>
+<text x="20" y="30" class="mono t-muted" font-size="10">1 hour ago</text>
+</g>
+<line x1="20" y1="168" x2="350" y2="168" stroke="#1E1E32"/>
+<g transform="translate(20, 178)">
+<circle cx="8" cy="10" r="4" fill="#FFC078"/>
+<text x="20" y="14" class="t-primary" font-size="12">Follow-up #1 sent to Aisha Patel</text>
+<text x="20" y="30" class="mono t-muted" font-size="10">2 days ago</text>
+</g>
+<line x1="20" y1="231" x2="350" y2="231" stroke="#1E1E32"/>
+<g transform="translate(20, 241)">
+<circle cx="8" cy="10" r="4" fill="#00FFB2"/>
+<text x="20" y="14" class="t-primary" font-size="12">Proposal sent to James Kim — $4,200</text>
+<text x="20" y="30" class="mono t-muted" font-size="10">3 days ago</text>
+</g>
+<line x1="20" y1="294" x2="350" y2="294" stroke="#1E1E32"/>
+<g transform="translate(20, 304)">
+<circle cx="8" cy="10" r="4" fill="#FF6B6B"/>
+<text x="20" y="14" class="t-primary" font-size="12">Deal signed! Lisa Wong — $3,800</text>
+<text x="20" y="30" class="mono t-muted" font-size="10">5 days ago</text>
+</g>
+<line x1="20" y1="357" x2="350" y2="357" stroke="#1E1E32"/>
+<g transform="translate(20, 367)">
+<circle cx="8" cy="10" r="4" fill="#7A7A96"/>
+<text x="20" y="14" class="t-primary" font-size="12">Onboarding email sent to Lisa Wong</text>
+<text x="20" y="30" class="mono t-muted" font-size="10">5 days ago</text>
+</g>
+</g>
+
+<!-- ═══ BOTTOM RIGHT — Conversion Funnel ═══ -->
+<g transform="translate(1036, 268)">
+<rect width="370" height="220" rx="12" fill="url(#card-g)" stroke="#2A2A42" stroke-width="1" filter="url(#shadow)"/>
+<text x="20" y="32" class="syne t-primary" font-size="15" font-weight="700">Conversion Funnel</text>
+<!-- Funnel bars -->
+<rect x="20" y="56" width="330" height="24" rx="4" fill="#1E1E32"/>
+<rect x="20" y="56" width="330" height="24" rx="4" fill="#00FFB2" opacity=".2"/>
+<text x="30" y="73" class="mono t-primary" font-size="11">Inquiries     33</text>
+<rect x="20" y="90" width="250" height="24" rx="4" fill="#1E1E32"/>
+<rect x="20" y="90" width="250" height="24" rx="4" fill="#6C5CE7" opacity=".2"/>
+<text x="30" y="107" class="mono t-primary" font-size="11">Qualified      21</text>
+<rect x="20" y="124" width="140" height="24" rx="4" fill="#1E1E32"/>
+<rect x="20" y="124" width="140" height="24" rx="4" fill="#FFC078" opacity=".2"/>
+<text x="30" y="141" class="mono t-primary" font-size="11">Proposals   12</text>
+<rect x="20" y="158" width="80" height="24" rx="4" fill="#1E1E32"/>
+<rect x="20" y="158" width="80" height="24" rx="4" fill="#00FFB2" opacity=".3"/>
+<text x="30" y="175" class="mono t-primary" font-size="11">Won    7</text>
+<text x="20" y="205" class="t-secondary" font-size="12">Close rate: <tspan class="t-accent" font-weight="600">21.2%</tspan></text>
+</g>
+
+<!-- ═══ BOTTOM RIGHT — Quick Actions ═══ -->
+<g transform="translate(1036, 508)">
+<rect width="370" height="212" rx="12" fill="url(#card-g)" stroke="#2A2A42" stroke-width="1" filter="url(#shadow)"/>
+<text x="20" y="32" class="syne t-primary" font-size="15" font-weight="700">Quick Actions</text>
+
+<!-- Action buttons -->
+<rect x="20" y="52" width="330" height="42" rx="8" fill="#00FFB2" opacity=".08" stroke="#00FFB2" stroke-width="1" stroke-opacity=".3"/>
+<text x="44" y="78" class="t-accent" font-size="13" font-weight="500">＋  Submit Post-Call Details</text>
+
+<rect x="20" y="104" width="330" height="42" rx="8" fill="#6C5CE7" opacity=".08" stroke="#6C5CE7" stroke-width="1" stroke-opacity=".3"/>
+<text x="44" y="130" class="t-purple" font-size="13" font-weight="500">✓  Mark Deal as Signed</text>
+
+<rect x="20" y="156" width="330" height="42" rx="8" fill="#1E1E32" stroke="#2A2A42" stroke-width="1"/>
+<text x="44" y="182" class="t-secondary" font-size="13" font-weight="500">⚡  Run Follow-ups Now</text>
+</g>
+
+<!-- ═══ ACCENT LINE (bottom) ═══ -->
+<rect x="0" y="896" width="1440" height="4" fill="url(#accent-g)"/>
+
+</svg>

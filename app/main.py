@@ -4,8 +4,10 @@ for the AI Lead-to-Contract Pipeline.
 """
 
 from fastapi import FastAPI, HTTPException, Header, Request
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
+import os
 import logging
 import hmac
 import hashlib
@@ -44,6 +46,12 @@ app = FastAPI(
     version="1.0.0",
     lifespan=lifespan,
 )
+
+# Create static directory if it doesn't exist
+os.makedirs("static", exist_ok=True)
+
+# Mount static files
+app.mount("/assets", StaticFiles(directory="static"), name="assets")
 
 
 # ── Auth helper ────────────────────────────────────────────
@@ -164,6 +172,11 @@ async def health():
         "service": "AI Lead-to-Contract Pipeline",
         "version": "1.0.0",
     }
+
+
+@app.get("/dashboard", summary="UI Dashboard")
+async def dashboard():
+    return FileResponse("static/index.html")
 
 
 @app.get("/leads", summary="View all leads in the pipeline")
