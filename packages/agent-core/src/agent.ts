@@ -54,11 +54,46 @@ export class Agent {
                 // Execute tool
                 let toolResult = "";
                 try {
-                    if (call.name === 'readFile') toolResult = await executeTool.readFile(args.filePath as string, this.workspaceRoot);
-                    else if (call.name === 'writeFile') toolResult = await executeTool.writeFile(args.filePath as string, args.content as string, this.workspaceRoot);
-                    else if (call.name === 'listDirectory') toolResult = await executeTool.listDirectory(args.dirPath as string, this.workspaceRoot);
-                    else if (call.name === 'runCommand') toolResult = await executeTool.runCommand(args.command as string, this.workspaceRoot);
-                    else toolResult = `Unknown tool: ${call.name}`;
+                    if (call.name === 'readFile') {
+                        toolResult = await executeTool.readFile(args.filePath as string, this.workspaceRoot);
+                    } else if (call.name === 'writeFile') {
+                        this.ws.send(JSON.stringify({ 
+                            type: 'proposal', 
+                            payload: { filePath: args.filePath, content: args.content } 
+                        }));
+                        
+                        this.sendTrace(`Waiting for user approval to write ${args.filePath}...`);
+                        
+                        const result = await new Promise<string>((resolve) => {
+                            const handler = (data: any) => {
+                                try {
+                                    const msg = JSON.parse(data.toString());
+                                    if (msg.command === 'approve' && msg.filePath === args.filePath) {
+                                        this.ws.removeListener('message', handler);
+                                        resolve('approved');
+                                    } else if (msg.command === 'reject' && msg.filePath === args.filePath) {
+                                        this.ws.removeListener('message', handler);
+                                        resolve('rejected');
+                                    }
+                                } catch (e) {}
+                            };
+                            this.ws.on('message', handler);
+                        });
+
+                        if (result === 'approved') {
+                            toolResult = await executeTool.writeFile(args.filePath as string, args.content as string, this.workspaceRoot);
+                            this.sendTrace(`User APPROVED write to ${args.filePath}`);
+                        } else {
+                            toolResult = "User REJECTED the file write. Try a different approach or ask for clarification.";
+                            this.sendTrace(`User REJECTED write to ${args.filePath}`);
+                        }
+                    } else if (call.name === 'listDirectory') {
+                        toolResult = await executeTool.listDirectory(args.dirPath as string, this.workspaceRoot);
+                    } else if (call.name === 'runCommand') {
+                        toolResult = await executeTool.runCommand(args.command as string, this.workspaceRoot);
+                    } else {
+                        toolResult = `Unknown tool: ${call.name}`;
+                    }
                 } catch (e: any) {
                     toolResult = `Error executing tool: ${e.message}`;
                 }

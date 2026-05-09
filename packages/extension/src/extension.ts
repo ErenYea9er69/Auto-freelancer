@@ -3,7 +3,17 @@ import * as vscode from 'vscode';
 export function activate(context: vscode.ExtensionContext) {
     console.log('GOALpilot extension is now active!');
 
-    const provider = new SidebarProvider(context.extensionUri);
+    const myProvider = new class implements vscode.TextDocumentContentProvider {
+        contentMap = new Map<string, string>();
+        
+        provideTextDocumentContent(uri: vscode.Uri): string {
+            return this.contentMap.get(uri.path) || '';
+        }
+    }();
+    
+    context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('goalpilot-proposal', myProvider));
+
+    const provider = new SidebarProvider(context.extensionUri, myProvider);
     context.subscriptions.push(
         vscode.window.registerWebviewViewProvider('goalpilot-sidebar', provider, {
             webviewOptions: { retainContextWhenHidden: true }
@@ -18,7 +28,10 @@ export function activate(context: vscode.ExtensionContext) {
 }
 
 class SidebarProvider implements vscode.WebviewViewProvider {
-    constructor(private readonly _extensionUri: vscode.Uri) {}
+    constructor(
+        private readonly _extensionUri: vscode.Uri,
+        private readonly _provider: any
+    ) {}
 
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
@@ -36,6 +49,13 @@ class SidebarProvider implements vscode.WebviewViewProvider {
             switch (data.command) {
                 case 'startTask':
                     vscode.window.showInformationMessage('Task Started: ' + data.text);
+                    break;
+                case 'showDiff':
+                    const originalUri = vscode.Uri.file(data.filePath);
+                    const proposalUri = vscode.Uri.parse(`goalpilot-proposal:${data.filePath}`);
+                    this._provider.contentMap.set(proposalUri.path, data.content);
+                    
+                    vscode.commands.executeCommand('vscode.diff', originalUri, proposalUri, `Proposed: ${data.fileName}`);
                     break;
             }
         });
@@ -62,6 +82,10 @@ class SidebarProvider implements vscode.WebviewViewProvider {
         </head>
         <body>
             <div id="root"></div>
+            <script nonce="${nonce}">
+                // Expose vscode API to the React app
+                window.vscode = acquireVsCodeApi();
+            </script>
             <script nonce="${nonce}" type="module" src="${scriptUri}"></script>
         </body>
         </html>`;

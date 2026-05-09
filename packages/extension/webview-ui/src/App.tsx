@@ -1,18 +1,26 @@
 import { useState, useEffect, useRef } from 'react'
-import { motion } from 'framer-motion'
-import { Terminal, Code2, Zap, Settings2, Play, Square, Loader2 } from 'lucide-react'
+import { motion, AnimatePresence } from 'framer-motion'
+import { Terminal, Code2, Zap, Settings2, Play, Square, Loader2, Check, X, FileDiff } from 'lucide-react'
+
+// Define VS Code API type
+declare global {
+  interface Window {
+    vscode: any;
+  }
+}
 
 function App() {
   const [task, setTask] = useState('')
   const [status, setStatus] = useState<'idle' | 'running' | 'completed'>('idle')
   const [traces, setTraces] = useState<string[]>([])
+  const [proposal, setProposal] = useState<{filePath: string, content: string} | null>(null)
+  
   const wsRef = useRef<WebSocket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    // Scroll to bottom of traces
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" })
-  }, [traces])
+  }, [traces, proposal])
 
   const connectWebSocket = () => {
     if (wsRef.current) return;
@@ -20,7 +28,6 @@ function App() {
     
     ws.onopen = () => {
       console.log('Connected to Agent Core');
-      // We could send init here if we had workspaceRoot in webview, but let's assume agent-core defaults to cwd for now
     };
 
     ws.onmessage = (event) => {
@@ -31,6 +38,8 @@ function App() {
         } else if (data.type === 'completed') {
           setStatus('completed');
           setTraces(prev => [...prev, '--- TASK COMPLETE ---']);
+        } else if (data.type === 'proposal') {
+          setProposal(data.payload);
         }
       } catch (e) {
         console.error("Parse error", e);
@@ -58,6 +67,7 @@ function App() {
     if (!task.trim()) return;
     setStatus('running');
     setTraces([]);
+    setProposal(null);
     
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({ command: 'startTask', text: task }));
@@ -65,6 +75,27 @@ function App() {
       setTraces(['Error: Agent Core not connected. Is the backend running?']);
       setStatus('idle');
     }
+  };
+
+  const handleApprove = () => {
+    if (!proposal || !wsRef.current) return;
+    wsRef.current.send(JSON.stringify({ command: 'approve', filePath: proposal.filePath }));
+    setProposal(null);
+  };
+
+  const handleReject = () => {
+    if (!proposal || !wsRef.current) return;
+    wsRef.current.send(JSON.stringify({ command: 'reject', filePath: proposal.filePath }));
+    setProposal(null);
+  };
+
+  const handleViewDiff = () => {
+    if (!proposal || !window.vscode) return;
+    window.vscode.postMessage({
+      command: 'showDiff',
+      filePath: proposal.filePath,
+      content: proposal.content
+    });
   };
 
   return (
@@ -107,22 +138,64 @@ function App() {
               </div>
             </div>
             
-            <div className="flex items-start gap-3 flex-1 overflow-hidden">
-              <span className="text-brand-purple mt-1"><Terminal size={14} /></span>
-              <div className="border-l border-brand-border pl-3 flex flex-col h-full w-full overflow-hidden">
-                <span className="text-xs text-gray-500 uppercase flex-shrink-0">Reasoning Trace</span>
-                <div className="mt-1 p-2 bg-black/50 border border-brand-border rounded text-xs text-gray-400 font-mono overflow-y-auto flex-1 break-words">
-                  {traces.map((trace, i) => (
-                    <div key={i} className="mb-1">
-                      <span className="text-brand-neon">&gt;</span> {trace}
-                    </div>
-                  ))}
-                  {status === 'running' && (
-                    <div className="animate-pulse text-brand-neon mt-2">_</div>
-                  )}
-                  <div ref={messagesEndRef} />
+            <div className="flex items-start gap-3 flex-1 overflow-hidden flex-col">
+              <div className="flex items-start gap-3 w-full">
+                <span className="text-brand-purple mt-1"><Terminal size={14} /></span>
+                <div className="border-l border-brand-border pl-3 flex flex-col h-full w-full overflow-hidden">
+                  <span className="text-xs text-gray-500 uppercase flex-shrink-0">Reasoning Trace</span>
+                  <div className="mt-1 p-2 bg-black/50 border border-brand-border rounded text-xs text-gray-400 font-mono overflow-y-auto flex-1 break-words">
+                    {traces.map((trace, i) => (
+                      <div key={i} className="mb-1">
+                        <span className="text-brand-neon">&gt;</span> {trace}
+                      </div>
+                    ))}
+                    {status === 'running' && !proposal && (
+                      <div className="animate-pulse text-brand-neon mt-2">_</div>
+                    )}
+                    <div ref={messagesEndRef} />
+                  </div>
                 </div>
               </div>
+
+              {/* Proposal UI */}
+              <AnimatePresence>
+                {proposal && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="w-full mt-2 border border-brand-neon/50 bg-brand-darker p-3 shadow-[0_0_15px_rgba(0,240,255,0.15)]"
+                  >
+                    <div className="flex items-center gap-2 mb-2 text-brand-neon">
+                      <FileDiff size={16} />
+                      <span className="text-xs uppercase font-bold tracking-wider">File Edit Proposal</span>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-3 truncate" title={proposal.filePath}>
+                      Agent wants to modify: <span className="text-white">{proposal.filePath.split(/[/\\]/).pop()}</span>
+                    </p>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={handleViewDiff}
+                        className="flex-1 bg-brand-dark border border-brand-border text-gray-300 hover:text-white hover:border-gray-500 text-xs py-1.5 transition-colors"
+                      >
+                        View Diff
+                      </button>
+                      <button 
+                        onClick={handleApprove}
+                        className="flex-1 bg-green-900/20 border border-green-500/50 text-green-400 hover:bg-green-900/40 text-xs py-1.5 flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <Check size={14} /> Approve
+                      </button>
+                      <button 
+                        onClick={handleReject}
+                        className="flex-1 bg-red-900/20 border border-red-500/50 text-red-400 hover:bg-red-900/40 text-xs py-1.5 flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <X size={14} /> Reject
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </div>
             
           </motion.div>
@@ -168,7 +241,11 @@ function App() {
         <div className="flex items-center justify-between text-[10px] text-gray-500 uppercase tracking-widest px-1">
           <div className="flex items-center gap-2">
             {status === 'running' ? (
-              <span className="flex items-center gap-1 text-brand-neon"><Loader2 size={10} className="animate-spin" /> EXECUTING</span>
+              proposal ? (
+                 <span className="flex items-center gap-1 text-yellow-500"><Loader2 size={10} className="animate-spin" /> AWAITING APPROVAL</span>
+              ) : (
+                 <span className="flex items-center gap-1 text-brand-neon"><Loader2 size={10} className="animate-spin" /> EXECUTING</span>
+              )
             ) : status === 'completed' ? (
                <span className="flex items-center gap-1"><span className="w-2 h-2 rounded-full bg-brand-purple block" /> COMPLETED</span>
             ) : (
