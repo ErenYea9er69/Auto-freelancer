@@ -74,6 +74,7 @@ export class CopilotAgent {
     private conversationId: string;
     private apiKey: string;
     private isCancelled: boolean = false;
+    private pendingApprovals = new Map<string, (result: string) => void>();
 
     constructor(ws: WebSocket, workspaceRoot: string, dbManager: DatabaseManager | null = null, apiKey: string = "") {
         this.ws = ws;
@@ -81,6 +82,22 @@ export class CopilotAgent {
         this.dbManager = dbManager;
         this.apiKey = apiKey;
         this.conversationId = crypto.randomUUID();
+        
+        // Single global listener for copilot approvals
+        this.ws.on('message', (data: any) => {
+             try {
+                 const msg = JSON.parse(data.toString());
+                 if (msg.agentId !== 'copilot') return;
+                 
+                 if ((msg.command === 'approve' || msg.command === 'reject') && msg.filePath) {
+                     const resolve = this.pendingApprovals.get(`file:${msg.filePath}`);
+                     if (resolve) {
+                         this.pendingApprovals.delete(`file:${msg.filePath}`);
+                         resolve(msg.command === 'approve' ? 'approved' : 'rejected');
+                     }
+                 }
+             } catch (e) {}
+        });
     }
 
     private sendTrace(message: string) {
@@ -99,6 +116,7 @@ export class CopilotAgent {
      * @param filePath - The path of the currently active file (optional)
      */
     public async runTask(instruction: string, fileContext?: string, filePath?: string) {
+        this.isCancelled = false;
         this.sendTrace(`[COPILOT] Processing: ${instruction.substring(0, 80)}...`);
 
         // Build a hyper-focused prompt with file context
@@ -107,9 +125,13 @@ export class CopilotAgent {
             contextBlock = `\n\nCurrently open file: ${filePath}\nFile content:\n\`\`\`\n${fileContext}\n\`\`\``;
         }
 
-        this.history = [
-            { role: 'user', parts: [{ text: `${COPILOT_SYSTEM_PROMPT}${contextBlock}\n\nUser instruction: ${instruction}` }] }
-        ];
+        if (this.history.length === 0) {
+             this.history = [
+                 { role: 'user', parts: [{ text: `${COPILOT_SYSTEM_PROMPT}${contextBlock}\n\nUser instruction: ${instruction}` }] }
+             ];
+        } else {
+             this.history.push({ role: 'user', parts: [{ text: `${contextBlock ? `Context updated:\n${contextBlock}\n\n` : ''}User instruction: ${instruction}` }] });
+        }
 
         // Single-shot: max 3 steps (read → edit → confirm)
         const MAX_STEPS = 3;
@@ -162,19 +184,7 @@ export class CopilotAgent {
                     this.sendTrace(`[COPILOT] Waiting for approval to write ${args.filePath}...`);
 
                     const result = await new Promise<string>((resolve) => {
-                        const handler = (data: any) => {
-                            try {
-                                const msg = JSON.parse(data.toString());
-                                if (msg.command === 'approve' && msg.filePath === args.filePath) {
-                                    this.ws.removeListener('message', handler);
-                                    resolve('approved');
-                                } else if (msg.command === 'reject' && msg.filePath === args.filePath) {
-                                    this.ws.removeListener('message', handler);
-                                    resolve('rejected');
-                                }
-                            } catch (e) {}
-                        };
-                        this.ws.on('message', handler);
+                         this.pendingApprovals.set(`file:${args.filePath}`, resolve);
                     });
 
                     if (result === 'approved') {
@@ -190,7 +200,7 @@ export class CopilotAgent {
 
                 this.history.push({
                     role: 'user',
-                    parts: [{ functionResponse: { name: call.name, response: { result: toolResult } } }]
+                    parts: [{ functionResponse: { id: call.id, name: call.name, response: { result: toolResult } } }]
                 });
 
             } catch (error: any) {

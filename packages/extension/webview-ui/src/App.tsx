@@ -254,21 +254,19 @@ function App() {
   const handleViewDiff = (agentId: string) => {
     const proposal = agentProposals[agentId];
     if (!proposal || !window.vscode) return;
-    window.vscode.postMessage({
-      command: 'showDiff',
-      filePath: proposal.filePath,
-      content: proposal.content
-    });
-  };
-
-  const handleRewind = (agentId: string, traceIndex: number) => {
-    if (wsRef.current) {
-      wsRef.current.send(JSON.stringify({ command: 'rewind', agentId, traceIndex }));
-      setAgentTraces(prev => ({
-        ...prev,
-        [agentId]: prev[agentId].slice(0, traceIndex + 1)
-      }));
-      setAgentStatus(prev => ({ ...prev, [agentId]: 'idle' }));
+    if (proposal.type === 'editFile') {
+        window.vscode.postMessage({
+          command: 'showDiffEdit',
+          filePath: proposal.filePath,
+          target: proposal.target,
+          replacement: proposal.replacement
+        });
+    } else {
+        window.vscode.postMessage({
+          command: 'showDiff',
+          filePath: proposal.filePath,
+          content: proposal.content
+        });
     }
   };
 
@@ -548,13 +546,6 @@ function App() {
                               <span className="text-gray-600 mt-0.5">&gt;</span> 
                               <span className="flex-1 break-words">{trace.text}</span>
                             </div>
-                            <button 
-                              onClick={() => handleRewind(activeAgentId, i)}
-                              className="opacity-0 group-hover:opacity-100 bg-brand-purple/20 text-brand-purple hover:bg-brand-purple/40 px-2 py-0.5 rounded transition-opacity flex-shrink-0 ml-2"
-                              title="Rewind Agent to this step"
-                            >
-                              Rewind
-                            </button>
                           </div>
                         );
                       }
@@ -665,7 +656,7 @@ function App() {
                 handleStartTask();
               }
             }}
-            disabled={coreStatus === 'running'}
+            disabled={activeStatus === 'running'}
           />
           <div className="absolute bottom-2 right-2 flex gap-2">
             {coreStatus === 'running' ? (

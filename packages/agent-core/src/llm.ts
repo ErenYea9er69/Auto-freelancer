@@ -1,14 +1,20 @@
 import OpenAI from 'openai';
 
+let openaiInstance: OpenAI | null = null;
+
 export async function generateResponse(prompt: string, history: any[], tools: any[], apiKey: string, onChunk?: (text: string) => void) {
     if (!apiKey) {
         throw new Error("No API Key provided. Please configure your LongCat AI API Key in VS Code settings.");
     }
 
-    const openai = new OpenAI({
-      apiKey: apiKey,
-      baseURL: 'https://api.longcat.chat/openai',
-    });
+    if (!openaiInstance || openaiInstance.apiKey !== apiKey) {
+        openaiInstance = new OpenAI({
+            apiKey: apiKey,
+            baseURL: 'https://api.longcat.chat/openai',
+        });
+    }
+    
+    const openai = openaiInstance;
 
     // Map Gemini-style history to OpenAI format
     const messages: any[] = history.map(h => {

@@ -70,7 +70,7 @@ ${contextLines}
 ${selectedText ? `Selected Text:\n\`\`\`\n${selectedText}\n\`\`\`\n` : ''}
 Directive: ${prompt}
 
-Action required: Modify the file to fulfill the directive using the writeFile tool. Focus only on this specific context.`;
+Action required: Modify the file to fulfill the directive using the editFile tool. Focus only on this specific context.`;
         vscode.window.showInformationMessage('GOALpilot Mind-Meld initiated!');
         provider.postMessage({ type: 'trigger_mind_meld', payload: taskText });
         // Ensure sidebar is visible
@@ -135,6 +135,16 @@ class SidebarProvider {
                     const proposalUri = vscode.Uri.parse(`goalpilot-proposal:${data.filePath}`);
                     this._provider.contentMap.set(proposalUri.path, data.content);
                     vscode.commands.executeCommand('vscode.diff', originalUri, proposalUri, `Proposed: ${data.filePath.split(/[\\/]/).pop()}`);
+                    break;
+                case 'showDiffEdit':
+                    const editOriginalUri = vscode.Uri.file(data.filePath);
+                    const editProposalUri = vscode.Uri.parse(`goalpilot-proposal:${data.filePath}`);
+                    vscode.workspace.fs.readFile(editOriginalUri).then(fileData => {
+                        const originalContent = new TextDecoder().decode(fileData);
+                        const newContent = originalContent.replace(data.target, data.replacement);
+                        this._provider.contentMap.set(editProposalUri.path, newContent);
+                        vscode.commands.executeCommand('vscode.diff', editOriginalUri, editProposalUri, `Proposed Edit: ${data.filePath.split(/[\\/]/).pop()}`);
+                    });
                     break;
                 case 'liquidCode':
                     const ext = data.filePath.split('.').pop() || '';

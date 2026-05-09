@@ -17,6 +17,7 @@ export class Agent {
     private semanticSoul: SemanticSoul | null;
     public agentId: string;
     private isCancelled: boolean = false;
+    private pendingApprovals = new Map<string, (result: string) => void>();
 
     constructor(ws: WebSocket, workspaceRoot: string, dbManager: DatabaseManager | null = null, apiKey: string = "", agentId: string = "core", semanticSoul: SemanticSoul | null = null) {
         this.ws = ws;
@@ -26,6 +27,28 @@ export class Agent {
         this.agentId = agentId;
         this.semanticSoul = semanticSoul;
         this.conversationId = crypto.randomUUID();
+        
+        // Single global listener for this agent's approvals to prevent memory leaks
+        this.ws.on('message', (data: any) => {
+             try {
+                 const msg = JSON.parse(data.toString());
+                 if (msg.agentId !== this.agentId) return;
+                 
+                 if ((msg.command === 'approve' || msg.command === 'reject') && msg.filePath) {
+                     const resolve = this.pendingApprovals.get(`file:${msg.filePath}`);
+                     if (resolve) {
+                         this.pendingApprovals.delete(`file:${msg.filePath}`);
+                         resolve(msg.command === 'approve' ? 'approved' : 'rejected');
+                     }
+                 } else if ((msg.command === 'approve_run' || msg.command === 'reject_run') && msg.runCommand) {
+                     const resolve = this.pendingApprovals.get(`cmd:${msg.runCommand}`);
+                     if (resolve) {
+                         this.pendingApprovals.delete(`cmd:${msg.runCommand}`);
+                         resolve(msg.command === 'approve_run' ? 'approved' : 'rejected');
+                     }
+                 }
+             } catch (e) {}
+        });
     }
 
     private sendTrace(message: string) {
@@ -57,6 +80,7 @@ export class Agent {
     }
 
     public async runTask(task: string) {
+        this.isCancelled = false;
         this.sendTrace(`Initializing task: ${task}`);
         
         let injectedContext = "";
@@ -68,9 +92,14 @@ export class Agent {
             }
         }
         
-        const systemPrompt = `Task: ${task}${injectedContext}\nYou are an autonomous agent. Use tools to complete the task. You MUST call tools to understand the environment and make progress. When you are completely finished, reply with text indicating the task is complete without calling a tool.
-CRITICAL RULE: After modifying any files (using writeFile or editFile), you MUST run the 'sandboxedCommand' tool with "npm run build" to verify that the code compiles successfully. If the build fails, you MUST fix the errors before completing the task.`;
-        this.history.push({ role: 'user', parts: [{ text: systemPrompt }] });
+        const taskPrompt = `Task: ${task}${injectedContext}\n(Remember to run 'npm run build' after edits and use tools to complete the task.)`;
+        
+        if (this.history.length === 0) {
+            const systemPrompt = `You are an autonomous agent. Use tools to complete the task. You MUST call tools to understand the environment and make progress. When you are completely finished, reply with text indicating the task is complete without calling a tool.\nCRITICAL RULE: After modifying any files (using writeFile or editFile), you MUST run the 'sandboxedCommand' tool with "npm run build" to verify that the code compiles successfully. If the build fails, you MUST fix the errors before completing the task.`;
+            this.history.push({ role: 'user', parts: [{ text: `${systemPrompt}\n\n${taskPrompt}` }] });
+        } else {
+            this.history.push({ role: 'user', parts: [{ text: taskPrompt }] });
+        }
 
         let isComplete = false;
         let stepCount = 0;
@@ -126,19 +155,7 @@ CRITICAL RULE: After modifying any files (using writeFile or editFile), you MUST
                         this.sendTrace(`Waiting for user approval to write ${args.filePath}...`);
                         
                         const result = await new Promise<string>((resolve) => {
-                            const handler = (data: any) => {
-                                try {
-                                    const msg = JSON.parse(data.toString());
-                                    if (msg.command === 'approve' && msg.filePath === args.filePath && msg.agentId === this.agentId) {
-                                        this.ws.removeListener('message', handler);
-                                        resolve('approved');
-                                    } else if (msg.command === 'reject' && msg.filePath === args.filePath && msg.agentId === this.agentId) {
-                                        this.ws.removeListener('message', handler);
-                                        resolve('rejected');
-                                    }
-                                } catch (e) {}
-                            };
-                            this.ws.on('message', handler);
+                             this.pendingApprovals.set(`file:${args.filePath}`, resolve);
                         });
 
                         if (result === 'approved') {
@@ -160,19 +177,7 @@ CRITICAL RULE: After modifying any files (using writeFile or editFile), you MUST
                         this.sendTrace(`Waiting for user approval to edit ${args.filePath}...`);
                         
                         const result = await new Promise<string>((resolve) => {
-                            const handler = (data: any) => {
-                                try {
-                                    const msg = JSON.parse(data.toString());
-                                    if (msg.command === 'approve' && msg.filePath === args.filePath && msg.agentId === this.agentId) {
-                                        this.ws.removeListener('message', handler);
-                                        resolve('approved');
-                                    } else if (msg.command === 'reject' && msg.filePath === args.filePath && msg.agentId === this.agentId) {
-                                        this.ws.removeListener('message', handler);
-                                        resolve('rejected');
-                                    }
-                                } catch (e) {}
-                            };
-                            this.ws.on('message', handler);
+                             this.pendingApprovals.set(`file:${args.filePath}`, resolve);
                         });
 
                         if (result === 'approved') {
@@ -195,19 +200,7 @@ CRITICAL RULE: After modifying any files (using writeFile or editFile), you MUST
                         this.sendTrace(`Waiting for user approval to run command: ${args.command}...`);
                         
                         const result = await new Promise<string>((resolve) => {
-                            const handler = (data: any) => {
-                                try {
-                                    const msg = JSON.parse(data.toString());
-                                    if (msg.command === 'approve_run' && msg.runCommand === args.command && msg.agentId === this.agentId) {
-                                        this.ws.removeListener('message', handler);
-                                        resolve('approved');
-                                    } else if (msg.command === 'reject_run' && msg.runCommand === args.command && msg.agentId === this.agentId) {
-                                        this.ws.removeListener('message', handler);
-                                        resolve('rejected');
-                                    }
-                                } catch (e) {}
-                            };
-                            this.ws.on('message', handler);
+                             this.pendingApprovals.set(`cmd:${args.command}`, resolve);
                         });
                         
                         if (result === 'approved') {
@@ -282,7 +275,7 @@ CRITICAL RULE: After modifying any files (using writeFile or editFile), you MUST
                 // Add tool response to history
                 this.history.push({
                     role: 'user', 
-                    parts: [{ functionResponse: { name: call.name, response: { result: toolResult } } }]
+                    parts: [{ functionResponse: { id: call.id, name: call.name, response: { result: toolResult } } }]
                 });
 
             } catch (error: any) {

@@ -46,15 +46,21 @@ wss.on('connection', function connection(ws) {
       
       // Autonomous Mode — full ReAct agent with swarm, semantic search, etc.
       if (message.command === 'startTask') {
-        const newAgent = new Agent(ws, currentWorkspaceRoot, dbManager, apiKey, 'core', semanticSoul);
-        activeAgents.set('core', newAgent);
-        newAgent.runTask(message.text).catch(console.error);
+        let agent = activeAgents.get('core') as Agent;
+        if (!agent) {
+            agent = new Agent(ws, currentWorkspaceRoot, dbManager, apiKey, 'core', semanticSoul);
+            activeAgents.set('core', agent);
+        }
+        agent.runTask(message.text).catch(console.error);
       }
 
       // Copilot Mode — stripped-down, obedient, surgical edits only
       if (message.command === 'startCopilotTask') {
-        const copilot = new CopilotAgent(ws, currentWorkspaceRoot, dbManager, apiKey);
-        activeAgents.set('copilot', copilot);
+        let copilot = activeAgents.get('copilot') as CopilotAgent;
+        if (!copilot) {
+            copilot = new CopilotAgent(ws, currentWorkspaceRoot, dbManager, apiKey);
+            activeAgents.set('copilot', copilot);
+        }
         copilot.runTask(message.text, message.fileContext, message.filePath).catch(console.error);
       }
 
