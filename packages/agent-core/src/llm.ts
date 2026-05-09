@@ -1,6 +1,6 @@
 import OpenAI from 'openai';
 
-export async function generateResponse(prompt: string, history: any[], tools: any[], apiKey: string) {
+export async function generateResponse(prompt: string, history: any[], tools: any[], apiKey: string, onChunk?: (text: string) => void) {
     if (!apiKey) {
         throw new Error("No API Key provided. Please configure your LongCat AI API Key in VS Code settings.");
     }
@@ -17,7 +17,7 @@ export async function generateResponse(prompt: string, history: any[], tools: an
             if (h.parts[0].functionResponse) {
                 return {
                     role: 'tool',
-                    tool_call_id: "call_" + h.parts[0].functionResponse.name, 
+                    tool_call_id: h.parts[0].functionResponse.id || ("call_" + h.parts[0].functionResponse.name + "_" + Math.random().toString(36).substring(7)), 
                     content: h.parts[0].functionResponse.response.result
                 }
             }
@@ -28,7 +28,7 @@ export async function generateResponse(prompt: string, history: any[], tools: an
                     role: 'assistant',
                     content: null,
                     tool_calls: [{
-                        id: "call_" + h.parts[0].functionCall.name,
+                        id: h.parts[0].functionCall.id || ("call_" + h.parts[0].functionCall.name + "_" + Math.random().toString(36).substring(7)),
                         type: 'function',
                         function: {
                             name: h.parts[0].functionCall.name,
@@ -58,17 +58,40 @@ export async function generateResponse(prompt: string, history: any[], tools: an
             messages: messages as any,
             tools: openAiTools as any,
             temperature: 0.2,
+            stream: true,
+            stream_options: { include_usage: true } as any
         });
 
-        const choice = response.choices[0].message;
+        let fullContent = "";
+        let toolCallParams: any = null;
+        let finalUsage: any = null;
+
+        for await (const chunk of response) {
+            const delta = chunk.choices && chunk.choices[0] ? chunk.choices[0].delta : null;
+            if (delta?.content) {
+                fullContent += delta.content;
+                if (onChunk) onChunk(delta.content);
+            }
+            if (delta?.tool_calls) {
+                const tc = delta.tool_calls[0];
+                if (tc.function?.name) {
+                    toolCallParams = { id: tc.id, name: tc.function.name, arguments: tc.function.arguments || "" };
+                } else if (tc.function?.arguments && toolCallParams) {
+                    toolCallParams.arguments += tc.function.arguments;
+                }
+            }
+            if ((chunk as any).usage) {
+                finalUsage = (chunk as any).usage;
+            }
+        }
         
         // Map back to Gemini-like response format for agent.ts compatibility
-        const result: any = { text: choice.content };
-        if (choice.tool_calls && choice.tool_calls.length > 0) {
-            const toolCall = choice.tool_calls[0] as any;
+        const result: any = { text: fullContent, usage: finalUsage };
+        if (toolCallParams) {
             result.functionCalls = [{
-                name: toolCall.function.name,
-                args: JSON.parse(toolCall.function.arguments)
+                id: toolCallParams.id,
+                name: toolCallParams.name,
+                args: JSON.parse(toolCallParams.arguments)
             }];
         }
         

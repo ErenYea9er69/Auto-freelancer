@@ -29,11 +29,26 @@ export const tools = {
 
     async runCommand(command: string, cwd: string): Promise<string> {
         try {
-            const { stdout, stderr } = await execAsync(command, { cwd });
+            const { stdout, stderr } = await execAsync(command, { cwd, timeout: 30000 });
             return stdout || stderr || "Command executed successfully with no output.";
         } catch (error: any) {
+            if (error.killed && error.signal === 'SIGTERM') {
+                return `Command timed out after 30 seconds. Process was killed.`;
+            }
             return `Command failed: ${error.message}\nOutput: ${error.stdout || ''}\nError: ${error.stderr || ''}`;
         }
+    },
+
+    async editFile(filePath: string, target: string, replacement: string, workspaceRoot: string): Promise<string> {
+        const fullPath = path.resolve(workspaceRoot, filePath);
+        if (!fullPath.startsWith(workspaceRoot)) throw new Error("Access denied: path outside workspace");
+        const content = await fs.readFile(fullPath, 'utf-8');
+        if (!content.includes(target)) {
+            return `Error: Target string not found in ${filePath}. The exact target text must match the file content precisely, including whitespace and indentation.`;
+        }
+        const newContent = content.replace(target, replacement);
+        await fs.writeFile(fullPath, newContent, 'utf-8');
+        return `Successfully edited ${filePath}. Replaced ${target.split('\n').length} line(s).`;
     },
 
     async gitCommit(branchName: string, message: string, workspaceRoot: string): Promise<string> {
@@ -62,7 +77,7 @@ export const toolDefinitions = [
     },
     {
         name: "writeFile",
-        description: "Write content to a file. Overwrites if it exists.",
+        description: "Write content to a file. Overwrites the entire file if it exists. Only use this for creating NEW files or when you need to rewrite the entire file.",
         parameters: {
             type: "object",
             properties: {
@@ -70,6 +85,19 @@ export const toolDefinitions = [
                 content: { type: "string", description: "The content to write." }
             },
             required: ["filePath", "content"]
+        }
+    },
+    {
+        name: "editFile",
+        description: "Surgically edit a file by finding an exact target string and replacing it. Much more efficient than rewriting the entire file. Use this for small, precise changes. The target must match the file content exactly, including whitespace.",
+        parameters: {
+            type: "object",
+            properties: {
+                filePath: { type: "string", description: "Path to the file relative to the workspace root." },
+                target: { type: "string", description: "The exact string in the file to find and replace. Must match precisely." },
+                replacement: { type: "string", description: "The string to replace the target with." }
+            },
+            required: ["filePath", "target", "replacement"]
         }
     },
     {
@@ -116,6 +144,28 @@ export const toolDefinitions = [
                 task: { type: "string", description: "Detailed description of what the sub-agent needs to accomplish." }
             },
             required: ["agentName", "task"]
+        }
+    },
+    {
+        name: "sandboxedCommand",
+        description: "Run a shell command (e.g., tests, linters, builds) in the secure CI sandbox. This command requires NO human approval and runs instantly. Use this to verify your code compiles and passes tests. Do NOT use this for destructive commands like deleting databases.",
+        parameters: {
+            type: "object",
+            properties: {
+                command: { type: "string", description: "The shell command to execute." }
+            },
+            required: ["command"]
+        }
+    },
+    {
+        name: "semanticSearch",
+        description: "Search the entire codebase semantically for a concept, component, or logic flow (e.g. 'JWT authentication logic' or 'user login button'). The system will locate the most relevant files and code chunks instantly without needing exact filename matches.",
+        parameters: {
+            type: "object",
+            properties: {
+                query: { type: "string", description: "The semantic concept to search for." }
+            },
+            required: ["query"]
         }
     }
 ];

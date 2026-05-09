@@ -1,6 +1,8 @@
 import { WebSocketServer } from 'ws';
 import { Agent } from './agent';
+import { CopilotAgent } from './copilot-agent';
 import { DatabaseManager } from './db';
+import { SemanticSoul } from './semantic-index';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -15,11 +17,14 @@ wss.on('connection', function connection(ws) {
 
   ws.on('error', console.error);
 
-  let activeAgent: Agent | null = null;
   let currentWorkspaceRoot = process.cwd(); 
   let dbManager: DatabaseManager | null = null;
+  let semanticSoul: SemanticSoul | null = null;
   let userId: string = '';
   let apiKey: string = '';
+  
+  // Track active agents to allow cancellation
+  const activeAgents: Map<string, Agent | CopilotAgent> = new Map();
 
   ws.on('message', async function message(data) {
     try {
@@ -32,12 +37,42 @@ wss.on('connection', function connection(ws) {
         apiKey = message.apiKey;
         dbManager = new DatabaseManager(message.storagePath);
         await dbManager.init();
+        
+        semanticSoul = new SemanticSoul(currentWorkspaceRoot);
+        semanticSoul.buildIndex().catch(console.error);
+        
         ws.send(JSON.stringify({ type: 'ack', payload: `Workspace initialized to ${currentWorkspaceRoot} for user ${userId}` }));
       }
       
+      // Autonomous Mode — full ReAct agent with swarm, semantic search, etc.
       if (message.command === 'startTask') {
-        activeAgent = new Agent(ws, currentWorkspaceRoot, dbManager, apiKey);
-        activeAgent.runTask(message.text).catch(console.error);
+        const newAgent = new Agent(ws, currentWorkspaceRoot, dbManager, apiKey, 'core', semanticSoul);
+        activeAgents.set('core', newAgent);
+        newAgent.runTask(message.text).catch(console.error);
+      }
+
+      // Copilot Mode — stripped-down, obedient, surgical edits only
+      if (message.command === 'startCopilotTask') {
+        const copilot = new CopilotAgent(ws, currentWorkspaceRoot, dbManager, apiKey);
+        activeAgents.set('copilot', copilot);
+        copilot.runTask(message.text, message.fileContext, message.filePath).catch(console.error);
+      }
+
+      // Cancel a running agent
+      if (message.command === 'cancel') {
+        const agentToCancel = activeAgents.get(message.agentId);
+        if (agentToCancel) {
+          agentToCancel.cancel();
+          activeAgents.delete(message.agentId);
+        }
+      }
+
+      // Fetch chat history
+      if (message.command === 'getHistory') {
+        if (dbManager) {
+          const index = await dbManager.getIndex();
+          ws.send(JSON.stringify({ type: 'history_list', payload: index.conversations }));
+        }
       }
     } catch (e) {
       console.error('Failed to parse message or execute', e);

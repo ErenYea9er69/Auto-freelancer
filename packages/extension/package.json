@@ -46,6 +46,19 @@
       {
         "command": "goalpilot.start",
         "title": "Start GOALpilot"
+      },
+      {
+        "command": "goalpilot.mindMeld",
+        "title": "GOALpilot: Mind-Meld (Inline Context)",
+        "category": "GOALpilot"
+      }
+    ],
+    "keybindings": [
+      {
+        "command": "goalpilot.mindMeld",
+        "key": "ctrl+shift+k",
+        "mac": "cmd+shift+k",
+        "when": "editorTextFocus"
       }
     ]
   },

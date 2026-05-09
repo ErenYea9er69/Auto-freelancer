@@ -2,6 +2,7 @@ import { WebSocket } from 'ws';
 import { generateResponse } from './llm';
 import { tools as executeTool, toolDefinitions } from './tools';
 import { DatabaseManager } from './db';
+import { SemanticSoul } from './semantic-index';
 import * as crypto from 'crypto';
 
 export class Agent {
@@ -13,14 +14,17 @@ export class Agent {
     private conversationId: string;
     private apiKey: string;
     private contextFiles = new Set<string>();
+    private semanticSoul: SemanticSoul | null;
     public agentId: string;
+    private isCancelled: boolean = false;
 
-    constructor(ws: WebSocket, workspaceRoot: string, dbManager: DatabaseManager | null = null, apiKey: string = "", agentId: string = "core") {
+    constructor(ws: WebSocket, workspaceRoot: string, dbManager: DatabaseManager | null = null, apiKey: string = "", agentId: string = "core", semanticSoul: SemanticSoul | null = null) {
         this.ws = ws;
         this.workspaceRoot = workspaceRoot;
         this.dbManager = dbManager;
         this.apiKey = apiKey;
         this.agentId = agentId;
+        this.semanticSoul = semanticSoul;
         this.conversationId = crypto.randomUUID();
     }
 
@@ -47,22 +51,45 @@ export class Agent {
         }));
     }
 
+    public cancel() {
+        this.isCancelled = true;
+        this.sendTrace("Task cancelled by user.");
+    }
+
     public async runTask(task: string) {
         this.sendTrace(`Initializing task: ${task}`);
-        this.history.push({ role: 'user', parts: [{ text: `Task: ${task}\nYou are an autonomous agent. Use tools to complete the task. You MUST call tools to understand the environment and make progress. When you are completely finished, reply with text indicating the task is complete without calling a tool.` }] });
+        
+        let injectedContext = "";
+        if (this.semanticSoul && this.semanticSoul.isReady) {
+            this.sendTrace("🔍 Pre-fetching context using Semantic Soul...");
+            const results = await this.semanticSoul.search(task);
+            if (results && results.length > 10) {
+                injectedContext = `\n\n[SMART CONTEXT INJECTION]\nThe following files and snippets were found to be semantically relevant to your task:\n${results.substring(0, 4000)}\n\nReview this context before taking action.`;
+            }
+        }
+        
+        const systemPrompt = `Task: ${task}${injectedContext}\nYou are an autonomous agent. Use tools to complete the task. You MUST call tools to understand the environment and make progress. When you are completely finished, reply with text indicating the task is complete without calling a tool.
+CRITICAL RULE: After modifying any files (using writeFile or editFile), you MUST run the 'sandboxedCommand' tool with "npm run build" to verify that the code compiles successfully. If the build fails, you MUST fix the errors before completing the task.`;
+        this.history.push({ role: 'user', parts: [{ text: systemPrompt }] });
 
         let isComplete = false;
         let stepCount = 0;
         const MAX_STEPS = 15;
 
-        while (!isComplete && stepCount < MAX_STEPS) {
+        while (!isComplete && stepCount < MAX_STEPS && !this.isCancelled) {
             stepCount++;
             this.sendTrace(`Reasoning step ${stepCount}...`);
             
             try {
                 // Generate response
-                const response = await generateResponse("What is your next action?", this.history, toolDefinitions, this.apiKey);
+                const response = await generateResponse("What is your next action?", this.history, toolDefinitions, this.apiKey, (chunk) => {
+                    this.ws.send(JSON.stringify({ type: 'stream', agentId: this.agentId, payload: chunk }));
+                });
                 
+                if (response.usage) {
+                    this.ws.send(JSON.stringify({ type: 'usage', payload: response.usage }));
+                }
+
                 if (!response.functionCalls || response.functionCalls.length === 0) {
                     // No tool called, agent is done or just talking
                     const text = response.text || "Task complete.";
@@ -121,6 +148,40 @@ export class Agent {
                             toolResult = "User REJECTED the file write. Try a different approach or ask for clarification.";
                             this.sendTrace(`User REJECTED write to ${args.filePath}`);
                         }
+                    } else if (call.name === 'editFile') {
+                        this.updateGraph(args.filePath as string);
+                        // editFile uses the same approval flow as writeFile
+                        this.ws.send(JSON.stringify({ 
+                            type: 'proposal', 
+                            agentId: this.agentId,
+                            payload: { type: 'editFile', filePath: args.filePath, target: args.target, replacement: args.replacement } 
+                        }));
+                        
+                        this.sendTrace(`Waiting for user approval to edit ${args.filePath}...`);
+                        
+                        const result = await new Promise<string>((resolve) => {
+                            const handler = (data: any) => {
+                                try {
+                                    const msg = JSON.parse(data.toString());
+                                    if (msg.command === 'approve' && msg.filePath === args.filePath && msg.agentId === this.agentId) {
+                                        this.ws.removeListener('message', handler);
+                                        resolve('approved');
+                                    } else if (msg.command === 'reject' && msg.filePath === args.filePath && msg.agentId === this.agentId) {
+                                        this.ws.removeListener('message', handler);
+                                        resolve('rejected');
+                                    }
+                                } catch (e) {}
+                            };
+                            this.ws.on('message', handler);
+                        });
+
+                        if (result === 'approved') {
+                            toolResult = await executeTool.editFile(args.filePath as string, args.target as string, args.replacement as string, this.workspaceRoot);
+                            this.sendTrace(`User APPROVED edit to ${args.filePath}`);
+                        } else {
+                            toolResult = "User REJECTED the file edit. Try a different approach or ask for clarification.";
+                            this.sendTrace(`User REJECTED edit to ${args.filePath}`);
+                        }
                     } else if (call.name === 'listDirectory') {
                         this.updateGraph(args.dirPath as string);
                         toolResult = await executeTool.listDirectory(args.dirPath as string, this.workspaceRoot);
@@ -148,13 +209,25 @@ export class Agent {
                             };
                             this.ws.on('message', handler);
                         });
-
+                        
                         if (result === 'approved') {
+                            this.sendTrace(`Executing: ${args.command}...`);
                             toolResult = await executeTool.runCommand(args.command as string, this.workspaceRoot);
-                            this.sendTrace(`User APPROVED command: ${args.command}`);
+                            this.sendTrace(`Command Output:\n${toolResult}`);
                         } else {
                             toolResult = "User REJECTED the command. Try a different approach or ask for clarification.";
                             this.sendTrace(`User REJECTED command: ${args.command}`);
+                        }
+                    } else if (call.name === 'sandboxedCommand') {
+                        this.sendTrace(`[CI SANDBOX] Running: ${args.command}...`);
+                        toolResult = await executeTool.runCommand(args.command as string, this.workspaceRoot);
+                        this.sendTrace(`[CI SANDBOX] Output:\n${toolResult}`);
+                    } else if (call.name === 'semanticSearch') {
+                        this.sendTrace(`[SEMANTIC SOUL] Searching for: "${args.query}"...`);
+                        if (this.semanticSoul && this.semanticSoul.isReady) {
+                            toolResult = await this.semanticSoul.search(args.query as string);
+                        } else {
+                            toolResult = "Semantic index is still building or unavailable. Try again shortly or use standard tools.";
                         }
                     } else if (call.name === 'gitCommit') {
                         this.ws.send(JSON.stringify({ 
