@@ -1,0 +1,84 @@
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code:wght@300;400;600&family=Syncopate:wght@400;700&family=Inter:wght@300;400;500&display=swap');
+
+@import "tailwindcss";
+
+@theme {
+  --font-heading: 'Syncopate', sans-serif;
+  --font-mono: 'Fira Code', monospace;
+  --font-sans: 'Inter', sans-serif;
+
+  --color-brand-dark: #030303;
+  --color-brand-darker: #000000;
+  --color-brand-glass: rgba(10, 10, 15, 0.85);
+  --color-brand-neon: #00f0ff;
+  --color-brand-purple: #b026ff;
+  --color-brand-border: rgba(255, 255, 255, 0.08);
+}
+
+@layer base {
+  body {
+    background-color: var(--color-brand-dark);
+    color: white;
+    font-family: var(--font-mono);
+    margin: 0;
+    padding: 0;
+    height: 100vh;
+    overflow: hidden;
+    background-size: 40px 40px;
+    background-image: 
+      linear-gradient(to right, rgba(255,255,255,0.03) 1px, transparent 1px), 
+      linear-gradient(to bottom, rgba(255,255,255,0.03) 1px, transparent 1px);
+  }
+}
+
+@layer components {
+  .glass-panel {
+    background-color: var(--color-brand-glass);
+    backdrop-filter: blur(12px);
+    border: 1px solid var(--color-brand-border);
+    border-radius: 0.5rem;
+    box-shadow: 0 4px 30px rgba(0, 0, 0, 0.5);
+  }
+  
+  .cyber-button {
+    position: relative;
+    overflow: hidden;
+    font-family: var(--font-heading);
+    font-size: 0.875rem;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+    border: 1px solid var(--color-brand-border);
+    background-color: var(--color-brand-darker);
+    padding: 0.5rem 1rem;
+    transition: all 0.3s;
+  }
+  
+  .cyber-button:hover {
+    border-color: var(--color-brand-neon);
+    color: var(--color-brand-neon);
+    box-shadow: 0 0 10px rgba(0, 240, 255, 0.2), inset 0 0 10px rgba(0, 240, 255, 0.1);
+  }
+
+  .glow-text {
+    text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
+  }
+  
+  .glow-text-neon {
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.8);
+  }
+}
+
+/* Custom Scrollbar for the Chat */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(255,255,255,0.2);
+  border-radius: 10px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255,255,255,0.4);
+}

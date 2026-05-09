@@ -1,37 +1,30 @@
-import * as vscode from 'vscode';
-
-export function activate(context: vscode.ExtensionContext) {
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.activate = activate;
+exports.deactivate = deactivate;
+const vscode = require("vscode");
+function activate(context) {
     console.log('GOALpilot extension is now active!');
-
     const provider = new SidebarProvider(context.extensionUri);
-    context.subscriptions.push(
-        vscode.window.registerWebviewViewProvider('goalpilot-sidebar', provider, {
-            webviewOptions: { retainContextWhenHidden: true }
-        })
-    );
-
+    context.subscriptions.push(vscode.window.registerWebviewViewProvider('goalpilot-sidebar', provider, {
+        webviewOptions: { retainContextWhenHidden: true }
+    }));
     let disposable = vscode.commands.registerCommand('goalpilot.start', () => {
         vscode.window.showInformationMessage('GOALpilot started!');
     });
-
     context.subscriptions.push(disposable);
 }
-
-class SidebarProvider implements vscode.WebviewViewProvider {
-    constructor(private readonly _extensionUri: vscode.Uri) {}
-
-    public resolveWebviewView(
-        webviewView: vscode.WebviewView,
-        context: vscode.WebviewViewResolveContext,
-        _token: vscode.CancellationToken,
-    ) {
+class SidebarProvider {
+    _extensionUri;
+    constructor(_extensionUri) {
+        this._extensionUri = _extensionUri;
+    }
+    resolveWebviewView(webviewView, context, _token) {
         webviewView.webview.options = {
             enableScripts: true,
             localResourceRoots: [this._extensionUri]
         };
-
         webviewView.webview.html = this._getHtmlForWebview(webviewView.webview);
-        
         webviewView.webview.onDidReceiveMessage(data => {
             switch (data.command) {
                 case 'startTask':
@@ -40,17 +33,10 @@ class SidebarProvider implements vscode.WebviewViewProvider {
             }
         });
     }
-
-    private _getHtmlForWebview(webview: vscode.Webview) {
-        const scriptUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(this._extensionUri, 'webview-ui', 'build', 'assets', 'index.js')
-        );
-        const stylesUri = webview.asWebviewUri(
-            vscode.Uri.joinPath(this._extensionUri, 'webview-ui', 'build', 'assets', 'index.css')
-        );
-
+    _getHtmlForWebview(webview) {
+        const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'webview-ui', 'build', 'assets', 'index.js'));
+        const stylesUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'webview-ui', 'build', 'assets', 'index.css'));
         const nonce = getNonce();
-
         return `<!DOCTYPE html>
         <html lang="en">
         <head>
@@ -67,7 +53,6 @@ class SidebarProvider implements vscode.WebviewViewProvider {
         </html>`;
     }
 }
-
 function getNonce() {
     let text = '';
     const possible = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -76,5 +61,5 @@ function getNonce() {
     }
     return text;
 }
-
-export function deactivate() {}
+function deactivate() { }
+//# sourceMappingURL=extension.js.map
