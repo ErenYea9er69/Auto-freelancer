@@ -2,15 +2,15 @@ import OpenAI from 'openai';
 
 let openaiInstance: OpenAI | null = null;
 
-export async function generateResponse(prompt: string, history: any[], tools: any[], apiKey: string, onChunk?: (text: string) => void) {
+export async function generateResponse(prompt: string, history: any[], tools: any[], apiKey: string, apiBaseUrl: string = 'https://api.longcat.chat/openai', modelName: string = 'LongCat-Flash-Thinking-2601', onChunk?: (text: string) => void) {
     if (!apiKey) {
-        throw new Error("No API Key provided. Please configure your LongCat AI API Key in VS Code settings.");
+        throw new Error("No API Key provided. Please configure your API Key in VS Code settings.");
     }
 
-    if (!openaiInstance || openaiInstance.apiKey !== apiKey) {
+    if (!openaiInstance || openaiInstance.apiKey !== apiKey || openaiInstance.baseURL !== apiBaseUrl) {
         openaiInstance = new OpenAI({
             apiKey: apiKey,
-            baseURL: 'https://api.longcat.chat/openai',
+            baseURL: apiBaseUrl,
         });
     }
     
@@ -59,11 +59,10 @@ export async function generateResponse(prompt: string, history: any[], tools: an
     }));
 
     try {
-        const response = await openai.chat.completions.create({
-            model: 'LongCat-2.0-Preview', // Strongest smartest LongCat model
+        const stream = await openai.chat.completions.create({
+            model: modelName,
             messages: messages as any,
-            tools: openAiTools as any,
-            temperature: 0.2,
+            tools: openAiTools.length > 0 ? (openAiTools as any) : undefined,
             stream: true,
             stream_options: { include_usage: true } as any
         });
@@ -72,7 +71,7 @@ export async function generateResponse(prompt: string, history: any[], tools: an
         let toolCallParams: any = null;
         let finalUsage: any = null;
 
-        for await (const chunk of response) {
+        for await (const chunk of stream) {
             const delta = chunk.choices && chunk.choices[0] ? chunk.choices[0].delta : null;
             if (delta?.content) {
                 fullContent += delta.content;

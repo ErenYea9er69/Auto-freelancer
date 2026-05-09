@@ -75,12 +75,16 @@ export class CopilotAgent {
     private apiKey: string;
     private isCancelled: boolean = false;
     private pendingApprovals = new Map<string, (result: string) => void>();
+    private apiBaseUrl: string;
+    private modelName: string;
 
-    constructor(ws: WebSocket, workspaceRoot: string, dbManager: DatabaseManager | null = null, apiKey: string = "") {
+    constructor(ws: WebSocket, workspaceRoot: string, dbManager: DatabaseManager | null = null, apiKey: string = "", apiBaseUrl: string = "https://api.longcat.chat/openai", modelName: string = "LongCat-2.0-Preview") {
         this.ws = ws;
         this.workspaceRoot = workspaceRoot;
         this.dbManager = dbManager;
         this.apiKey = apiKey;
+        this.apiBaseUrl = apiBaseUrl;
+        this.modelName = modelName;
         this.conversationId = crypto.randomUUID();
         
         // Single global listener for copilot approvals
@@ -137,15 +141,9 @@ export class CopilotAgent {
         const MAX_STEPS = 3;
         for (let step = 0; step < MAX_STEPS && !this.isCancelled; step++) {
             try {
-                const response = await generateResponse(
-                    step === 0 ? "Execute the user's instruction now." : "Continue.",
-                    this.history,
-                    copilotToolDefs,
-                    this.apiKey,
-                    (chunk) => {
-                        this.ws.send(JSON.stringify({ type: 'stream', agentId: 'copilot', payload: chunk }));
-                    }
-                );
+                const response = await generateResponse(instruction, this.history, copilotToolDefs, this.apiKey, this.apiBaseUrl, this.modelName, (chunk) => {
+                    this.ws.send(JSON.stringify({ type: 'stream', agentId: 'copilot', payload: chunk }));
+                });
 
                 if (response.usage) {
                     this.ws.send(JSON.stringify({ type: 'usage', payload: response.usage }));
@@ -153,7 +151,7 @@ export class CopilotAgent {
 
                 if (!response.functionCalls || response.functionCalls.length === 0) {
                     const text = response.text || "Done.";
-                    this.sendTrace(`[COPILOT] ${text}`);
+                    this.history.push({ role: 'model', parts: [{ text }] });
                     break;
                 }
 

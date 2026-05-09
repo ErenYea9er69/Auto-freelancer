@@ -18,12 +18,16 @@ export class Agent {
     public agentId: string;
     private isCancelled: boolean = false;
     private pendingApprovals = new Map<string, (result: string) => void>();
+    private apiBaseUrl: string;
+    private modelName: string;
 
-    constructor(ws: WebSocket, workspaceRoot: string, dbManager: DatabaseManager | null = null, apiKey: string = "", agentId: string = "core", semanticSoul: SemanticSoul | null = null) {
+    constructor(ws: WebSocket, workspaceRoot: string, dbManager: DatabaseManager | null = null, apiKey: string = "", apiBaseUrl: string = "https://api.longcat.chat/openai", modelName: string = "LongCat-2.0-Preview", agentId: string = "core", semanticSoul: SemanticSoul | null = null) {
         this.ws = ws;
         this.workspaceRoot = workspaceRoot;
         this.dbManager = dbManager;
         this.apiKey = apiKey;
+        this.apiBaseUrl = apiBaseUrl;
+        this.modelName = modelName;
         this.agentId = agentId;
         this.semanticSoul = semanticSoul;
         this.conversationId = crypto.randomUUID();
@@ -111,7 +115,7 @@ export class Agent {
             
             try {
                 // Generate response
-                const response = await generateResponse("What is your next action?", this.history, toolDefinitions, this.apiKey, (chunk) => {
+                const response = await generateResponse(task, this.history, toolDefinitions, this.apiKey, this.apiBaseUrl, this.modelName, (chunk) => {
                     this.ws.send(JSON.stringify({ type: 'stream', agentId: this.agentId, payload: chunk }));
                 });
                 
@@ -122,7 +126,6 @@ export class Agent {
                 if (!response.functionCalls || response.functionCalls.length === 0) {
                     // No tool called, agent is done or just talking
                     const text = response.text || "Task complete.";
-                    this.sendTrace(`Final Output: ${text}`);
                     this.history.push({ role: 'model', parts: [{ text }] });
                     isComplete = true;
                     break;

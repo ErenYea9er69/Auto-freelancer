@@ -22,6 +22,8 @@ wss.on('connection', function connection(ws) {
   let semanticSoul: SemanticSoul | null = null;
   let userId: string = '';
   let apiKey: string = '';
+  let apiBaseUrl: string = 'https://api.longcat.chat/openai';
+  let modelName: string = 'LongCat-Flash-Thinking-2601';
   
   // Track active agents to allow cancellation
   const activeAgents: Map<string, Agent | CopilotAgent> = new Map();
@@ -35,11 +37,16 @@ wss.on('connection', function connection(ws) {
         currentWorkspaceRoot = message.workspaceRoot;
         userId = message.userId;
         apiKey = message.apiKey;
+        if (message.apiBaseUrl) apiBaseUrl = message.apiBaseUrl;
+        if (message.modelName) modelName = message.modelName;
+        
         dbManager = new DatabaseManager(message.storagePath);
         await dbManager.init();
         
-        semanticSoul = new SemanticSoul(currentWorkspaceRoot);
-        semanticSoul.buildIndex().catch(console.error);
+        if (currentWorkspaceRoot) {
+            semanticSoul = new SemanticSoul(currentWorkspaceRoot);
+            semanticSoul.buildIndex().catch(console.error);
+        }
         
         ws.send(JSON.stringify({ type: 'ack', payload: `Workspace initialized to ${currentWorkspaceRoot} for user ${userId}` }));
       }
@@ -48,7 +55,7 @@ wss.on('connection', function connection(ws) {
       if (message.command === 'startTask') {
         let agent = activeAgents.get('core') as Agent;
         if (!agent) {
-            agent = new Agent(ws, currentWorkspaceRoot, dbManager, apiKey, 'core', semanticSoul);
+            agent = new Agent(ws, currentWorkspaceRoot, dbManager, apiKey, apiBaseUrl, modelName, 'core', semanticSoul);
             activeAgents.set('core', agent);
         }
         agent.runTask(message.text).catch(console.error);
@@ -58,7 +65,7 @@ wss.on('connection', function connection(ws) {
       if (message.command === 'startCopilotTask') {
         let copilot = activeAgents.get('copilot') as CopilotAgent;
         if (!copilot) {
-            copilot = new CopilotAgent(ws, currentWorkspaceRoot, dbManager, apiKey);
+            copilot = new CopilotAgent(ws, currentWorkspaceRoot, dbManager, apiKey, apiBaseUrl, modelName);
             activeAgents.set('copilot', copilot);
         }
         copilot.runTask(message.text, message.fileContext, message.filePath).catch(console.error);
