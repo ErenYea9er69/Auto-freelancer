@@ -34,6 +34,17 @@ export const tools = {
         } catch (error: any) {
             return `Command failed: ${error.message}\nOutput: ${error.stdout || ''}\nError: ${error.stderr || ''}`;
         }
+    },
+
+    async gitCommit(branchName: string, message: string, workspaceRoot: string): Promise<string> {
+        try {
+            await execAsync(`git checkout -b ${branchName}`, { cwd: workspaceRoot });
+            await execAsync(`git add .`, { cwd: workspaceRoot });
+            const { stdout } = await execAsync(`git commit -m "${message.replace(/"/g, '\\"')}"`, { cwd: workspaceRoot });
+            return `Successfully created branch ${branchName} and committed changes.\n${stdout}`;
+        } catch (error: any) {
+            return `Git command failed: ${error.message}`;
+        }
     }
 };
 
@@ -81,6 +92,18 @@ export const toolDefinitions = [
                 command: { type: "string", description: "The shell command to execute." }
             },
             required: ["command"]
+        }
+    },
+    {
+        name: "gitCommit",
+        description: "Create a new git branch and commit all current changes.",
+        parameters: {
+            type: "object",
+            properties: {
+                branchName: { type: "string", description: "Name of the new branch." },
+                message: { type: "string", description: "Commit message." }
+            },
+            required: ["branchName", "message"]
         }
     }
 ];

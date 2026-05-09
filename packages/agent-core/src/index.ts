@@ -1,5 +1,6 @@
 import { WebSocketServer } from 'ws';
 import { Agent } from './agent';
+import { DatabaseManager } from './db';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -15,8 +16,10 @@ wss.on('connection', function connection(ws) {
   ws.on('error', console.error);
 
   let activeAgent: Agent | null = null;
-  // Fallback to CWD, though extension should send an init message
   let currentWorkspaceRoot = process.cwd(); 
+  let dbManager: DatabaseManager | null = null;
+  let userId: string = '';
+  let apiKey: string = '';
 
   ws.on('message', async function message(data) {
     try {
@@ -25,11 +28,15 @@ wss.on('connection', function connection(ws) {
       
       if (message.command === 'init') {
         currentWorkspaceRoot = message.workspaceRoot;
-        ws.send(JSON.stringify({ type: 'ack', payload: `Workspace initialized to ${currentWorkspaceRoot}` }));
+        userId = message.userId;
+        apiKey = message.apiKey;
+        dbManager = new DatabaseManager(message.storagePath);
+        await dbManager.init();
+        ws.send(JSON.stringify({ type: 'ack', payload: `Workspace initialized to ${currentWorkspaceRoot} for user ${userId}` }));
       }
       
       if (message.command === 'startTask') {
-        activeAgent = new Agent(ws, currentWorkspaceRoot);
+        activeAgent = new Agent(ws, currentWorkspaceRoot, dbManager, apiKey);
         activeAgent.runTask(message.text).catch(console.error);
       }
     } catch (e) {

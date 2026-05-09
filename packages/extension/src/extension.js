@@ -3,8 +3,22 @@ Object.defineProperty(exports, "__esModule", { value: true });
 exports.activate = activate;
 exports.deactivate = deactivate;
 const vscode = require("vscode");
-function activate(context) {
+const crypto = require("crypto");
+async function activate(context) {
     console.log('GOALpilot extension is now active!');
+    // Super Privacy DB Setup: Ensure user ID exists
+    let userId = context.globalState.get('userId');
+    if (!userId) {
+        userId = crypto.randomUUID();
+        context.globalState.update('userId', userId);
+    }
+    // Ensure storage path exists
+    const storageUri = context.globalStorageUri;
+    try {
+        await vscode.workspace.fs.createDirectory(storageUri);
+        await vscode.workspace.fs.createDirectory(vscode.Uri.joinPath(storageUri, 'chats'));
+    }
+    catch (e) { }
     const myProvider = new class {
         contentMap = new Map();
         provideTextDocumentContent(uri) {
@@ -12,7 +26,7 @@ function activate(context) {
         }
     }();
     context.subscriptions.push(vscode.workspace.registerTextDocumentContentProvider('goalpilot-proposal', myProvider));
-    const provider = new SidebarProvider(context.extensionUri, myProvider);
+    const provider = new SidebarProvider(context.extensionUri, myProvider, storageUri.fsPath, userId);
     context.subscriptions.push(vscode.window.registerWebviewViewProvider('goalpilot-sidebar', provider, {
         webviewOptions: { retainContextWhenHidden: true }
     }));
@@ -24,9 +38,13 @@ function activate(context) {
 class SidebarProvider {
     _extensionUri;
     _provider;
-    constructor(_extensionUri, _provider) {
+    _storagePath;
+    _userId;
+    constructor(_extensionUri, _provider, _storagePath, _userId) {
         this._extensionUri = _extensionUri;
         this._provider = _provider;
+        this._storagePath = _storagePath;
+        this._userId = _userId;
     }
     resolveWebviewView(webviewView, context, _token) {
         webviewView.webview.options = {
@@ -43,7 +61,7 @@ class SidebarProvider {
                     const originalUri = vscode.Uri.file(data.filePath);
                     const proposalUri = vscode.Uri.parse(`goalpilot-proposal:${data.filePath}`);
                     this._provider.contentMap.set(proposalUri.path, data.content);
-                    vscode.commands.executeCommand('vscode.diff', originalUri, proposalUri, `Proposed: ${data.fileName}`);
+                    vscode.commands.executeCommand('vscode.diff', originalUri, proposalUri, `Proposed: ${data.filePath.split(/[\\/]/).pop()}`);
                     break;
             }
         });
@@ -52,6 +70,8 @@ class SidebarProvider {
         const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'webview-ui', 'build', 'assets', 'index.js'));
         const stylesUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'webview-ui', 'build', 'assets', 'index.css'));
         const nonce = getNonce();
+        const workspaceRoot = vscode.workspace.workspaceFolders?.[0]?.uri.fsPath || '';
+        const apiKey = vscode.workspace.getConfiguration('goalpilot').get('longcatApiKey') || '';
         return `<!DOCTYPE html>
         <html lang="en">
         <head>
@@ -64,8 +84,13 @@ class SidebarProvider {
         <body>
             <div id="root"></div>
             <script nonce="${nonce}">
-                // Expose vscode API to the React app
                 window.vscode = acquireVsCodeApi();
+                window.goalpilotConfig = {
+                    storagePath: ${JSON.stringify(this._storagePath)},
+                    userId: ${JSON.stringify(this._userId)},
+                    workspaceRoot: ${JSON.stringify(workspaceRoot)},
+                    apiKey: ${JSON.stringify(apiKey)}
+                };
             </script>
             <script nonce="${nonce}" type="module" src="${scriptUri}"></script>
         </body>

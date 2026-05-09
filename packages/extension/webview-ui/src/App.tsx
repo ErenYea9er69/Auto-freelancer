@@ -6,6 +6,12 @@ import { Terminal, Code2, Zap, Settings2, Play, Square, Loader2, Check, X, FileD
 declare global {
   interface Window {
     vscode: any;
+    goalpilotConfig: {
+      storagePath: string;
+      userId: string;
+      workspaceRoot: string;
+      apiKey: string;
+    };
   }
 }
 
@@ -13,7 +19,7 @@ function App() {
   const [task, setTask] = useState('')
   const [status, setStatus] = useState<'idle' | 'running' | 'completed'>('idle')
   const [traces, setTraces] = useState<string[]>([])
-  const [proposal, setProposal] = useState<{filePath: string, content: string} | null>(null)
+  const [proposal, setProposal] = useState<{type: 'writeFile' | 'runCommand', filePath?: string, content?: string, command?: string} | null>(null)
   
   const wsRef = useRef<WebSocket | null>(null)
   const messagesEndRef = useRef<HTMLDivElement>(null)
@@ -28,6 +34,16 @@ function App() {
     
     ws.onopen = () => {
       console.log('Connected to Agent Core');
+      const config = window.goalpilotConfig;
+      if (config) {
+        ws.send(JSON.stringify({ 
+          command: 'init', 
+          workspaceRoot: config.workspaceRoot,
+          storagePath: config.storagePath,
+          userId: config.userId,
+          apiKey: config.apiKey
+        }));
+      }
     };
 
     ws.onmessage = (event) => {
@@ -79,13 +95,21 @@ function App() {
 
   const handleApprove = () => {
     if (!proposal || !wsRef.current) return;
-    wsRef.current.send(JSON.stringify({ command: 'approve', filePath: proposal.filePath }));
+    if (proposal.type === 'writeFile') {
+      wsRef.current.send(JSON.stringify({ command: 'approve', filePath: proposal.filePath }));
+    } else if (proposal.type === 'runCommand') {
+      wsRef.current.send(JSON.stringify({ command: 'approve_run', runCommand: proposal.command }));
+    }
     setProposal(null);
   };
 
   const handleReject = () => {
     if (!proposal || !wsRef.current) return;
-    wsRef.current.send(JSON.stringify({ command: 'reject', filePath: proposal.filePath }));
+    if (proposal.type === 'writeFile') {
+      wsRef.current.send(JSON.stringify({ command: 'reject', filePath: proposal.filePath }));
+    } else if (proposal.type === 'runCommand') {
+      wsRef.current.send(JSON.stringify({ command: 'reject_run', runCommand: proposal.command }));
+    }
     setProposal(null);
   };
 
@@ -159,7 +183,7 @@ function App() {
 
               {/* Proposal UI */}
               <AnimatePresence>
-                {proposal && (
+                {proposal && proposal.type === 'writeFile' && (
                   <motion.div 
                     initial={{ opacity: 0, scale: 0.95 }}
                     animate={{ opacity: 1, scale: 1 }}
@@ -171,7 +195,7 @@ function App() {
                       <span className="text-xs uppercase font-bold tracking-wider">File Edit Proposal</span>
                     </div>
                     <p className="text-xs text-gray-400 mb-3 truncate" title={proposal.filePath}>
-                      Agent wants to modify: <span className="text-white">{proposal.filePath.split(/[/\\]/).pop()}</span>
+                      Agent wants to modify: <span className="text-white">{proposal.filePath?.split(/[/\\]/).pop()}</span>
                     </p>
                     <div className="flex gap-2">
                       <button 
@@ -180,6 +204,36 @@ function App() {
                       >
                         View Diff
                       </button>
+                      <button 
+                        onClick={handleApprove}
+                        className="flex-1 bg-green-900/20 border border-green-500/50 text-green-400 hover:bg-green-900/40 text-xs py-1.5 flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <Check size={14} /> Approve
+                      </button>
+                      <button 
+                        onClick={handleReject}
+                        className="flex-1 bg-red-900/20 border border-red-500/50 text-red-400 hover:bg-red-900/40 text-xs py-1.5 flex items-center justify-center gap-1 transition-colors"
+                      >
+                        <X size={14} /> Reject
+                      </button>
+                    </div>
+                  </motion.div>
+                )}
+                {proposal && proposal.type === 'runCommand' && (
+                  <motion.div 
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    className="w-full mt-2 border border-brand-purple/50 bg-brand-darker p-3 shadow-[0_0_15px_rgba(138,43,226,0.15)]"
+                  >
+                    <div className="flex items-center gap-2 mb-2 text-brand-purple">
+                      <Terminal size={16} />
+                      <span className="text-xs uppercase font-bold tracking-wider">Command Proposal</span>
+                    </div>
+                    <p className="text-xs text-gray-400 mb-3 truncate" title={proposal.command}>
+                      Agent wants to run: <span className="text-brand-purple font-mono bg-black/50 px-1 py-0.5 rounded">{proposal.command}</span>
+                    </p>
+                    <div className="flex gap-2">
                       <button 
                         onClick={handleApprove}
                         className="flex-1 bg-green-900/20 border border-green-500/50 text-green-400 hover:bg-green-900/40 text-xs py-1.5 flex items-center justify-center gap-1 transition-colors"

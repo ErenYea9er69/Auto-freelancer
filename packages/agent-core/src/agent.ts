@@ -1,18 +1,28 @@
 import { WebSocket } from 'ws';
 import { generateResponse } from './llm';
 import { tools as executeTool, toolDefinitions } from './tools';
+import { DatabaseManager } from './db';
+import * as crypto from 'crypto';
 
 export class Agent {
     private ws: WebSocket;
     private workspaceRoot: string;
     private history: any[] = [];
+    private traces: string[] = [];
+    private dbManager: DatabaseManager | null;
+    private conversationId: string;
+    private apiKey: string;
 
-    constructor(ws: WebSocket, workspaceRoot: string) {
+    constructor(ws: WebSocket, workspaceRoot: string, dbManager: DatabaseManager | null = null, apiKey: string = "") {
         this.ws = ws;
         this.workspaceRoot = workspaceRoot;
+        this.dbManager = dbManager;
+        this.apiKey = apiKey;
+        this.conversationId = crypto.randomUUID();
     }
 
     private sendTrace(message: string) {
+        this.traces.push(message);
         this.ws.send(JSON.stringify({ type: 'trace', payload: message }));
     }
 
@@ -30,7 +40,7 @@ export class Agent {
             
             try {
                 // Generate response
-                const response = await generateResponse("What is your next action?", this.history, toolDefinitions);
+                const response = await generateResponse("What is your next action?", this.history, toolDefinitions, this.apiKey);
                 
                 if (!response.functionCalls || response.functionCalls.length === 0) {
                     // No tool called, agent is done or just talking
@@ -59,7 +69,7 @@ export class Agent {
                     } else if (call.name === 'writeFile') {
                         this.ws.send(JSON.stringify({ 
                             type: 'proposal', 
-                            payload: { filePath: args.filePath, content: args.content } 
+                            payload: { type: 'writeFile', filePath: args.filePath, content: args.content } 
                         }));
                         
                         this.sendTrace(`Waiting for user approval to write ${args.filePath}...`);
@@ -90,7 +100,67 @@ export class Agent {
                     } else if (call.name === 'listDirectory') {
                         toolResult = await executeTool.listDirectory(args.dirPath as string, this.workspaceRoot);
                     } else if (call.name === 'runCommand') {
-                        toolResult = await executeTool.runCommand(args.command as string, this.workspaceRoot);
+                        this.ws.send(JSON.stringify({ 
+                            type: 'proposal', 
+                            payload: { type: 'runCommand', command: args.command } 
+                        }));
+                        
+                        this.sendTrace(`Waiting for user approval to run command: ${args.command}...`);
+                        
+                        const result = await new Promise<string>((resolve) => {
+                            const handler = (data: any) => {
+                                try {
+                                    const msg = JSON.parse(data.toString());
+                                    if (msg.command === 'approve_run' && msg.runCommand === args.command) {
+                                        this.ws.removeListener('message', handler);
+                                        resolve('approved');
+                                    } else if (msg.command === 'reject_run' && msg.runCommand === args.command) {
+                                        this.ws.removeListener('message', handler);
+                                        resolve('rejected');
+                                    }
+                                } catch (e) {}
+                            };
+                            this.ws.on('message', handler);
+                        });
+
+                        if (result === 'approved') {
+                            toolResult = await executeTool.runCommand(args.command as string, this.workspaceRoot);
+                            this.sendTrace(`User APPROVED command: ${args.command}`);
+                        } else {
+                            toolResult = "User REJECTED the command. Try a different approach or ask for clarification.";
+                            this.sendTrace(`User REJECTED command: ${args.command}`);
+                        }
+                    } else if (call.name === 'gitCommit') {
+                        this.ws.send(JSON.stringify({ 
+                            type: 'proposal', 
+                            payload: { type: 'runCommand', command: `git checkout -b ${args.branchName} && git commit -m "${args.message}"` } 
+                        }));
+                        
+                        this.sendTrace(`Waiting for user approval to commit...`);
+                        
+                        const result = await new Promise<string>((resolve) => {
+                            const handler = (data: any) => {
+                                try {
+                                    const msg = JSON.parse(data.toString());
+                                    if (msg.command === 'approve_run') {
+                                        this.ws.removeListener('message', handler);
+                                        resolve('approved');
+                                    } else if (msg.command === 'reject_run') {
+                                        this.ws.removeListener('message', handler);
+                                        resolve('rejected');
+                                    }
+                                } catch (e) {}
+                            };
+                            this.ws.on('message', handler);
+                        });
+
+                        if (result === 'approved') {
+                            toolResult = await executeTool.gitCommit(args.branchName as string, args.message as string, this.workspaceRoot);
+                            this.sendTrace(`User APPROVED git commit.`);
+                        } else {
+                            toolResult = "User REJECTED the git commit. Try a different approach or ask for clarification.";
+                            this.sendTrace(`User REJECTED git commit.`);
+                        }
                     } else {
                         toolResult = `Unknown tool: ${call.name}`;
                     }
@@ -110,8 +180,15 @@ export class Agent {
                 this.sendTrace(`Error during reasoning: ${error.message}`);
                 break;
             }
+            
+            if (this.dbManager) {
+                await this.dbManager.saveConversation(this.conversationId, task.substring(0, 50), this.history, this.traces).catch(e => console.error("DB Save Error:", e));
+            }
         }
         
+        if (this.dbManager) {
+            await this.dbManager.saveConversation(this.conversationId, task.substring(0, 50), this.history, this.traces).catch(e => console.error("DB Save Error:", e));
+        }
         this.ws.send(JSON.stringify({ type: 'completed', payload: 'Task finished' }));
     }
 }

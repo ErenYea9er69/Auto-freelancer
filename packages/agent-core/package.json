@@ -9,8 +9,8 @@
     "dev": "ts-node-dev src/index.ts"
   },
   "dependencies": {
-    "@google/genai": "^2.0.1",
     "dotenv": "^17.4.2",
+    "openai": "^6.37.0",
     "ws": "^8.16.0"
   },
   "devDependencies": {
