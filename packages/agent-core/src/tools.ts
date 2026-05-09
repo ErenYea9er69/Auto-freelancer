@@ -105,5 +105,17 @@ export const toolDefinitions = [
             },
             required: ["branchName", "message"]
         }
+    },
+    {
+        name: "delegateTask",
+        description: "Spawn a specialized sub-agent to handle a specific part of the project in parallel.",
+        parameters: {
+            type: "object",
+            properties: {
+                agentName: { type: "string", description: "Name/Role of the sub-agent (e.g. 'frontend-dev', 'backend-dev'). Use short, descriptive names." },
+                task: { type: "string", description: "Detailed description of what the sub-agent needs to accomplish." }
+            },
+            required: ["agentName", "task"]
+        }
     }
 ];

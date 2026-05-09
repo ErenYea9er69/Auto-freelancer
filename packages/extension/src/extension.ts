@@ -35,6 +35,23 @@ export async function activate(context: vscode.ExtensionContext) {
         })
     );
 
+    // Feature 4: Proactive Ghost Mode
+    vscode.languages.onDidChangeDiagnostics(e => {
+        for (const uri of e.uris) {
+            const diagnostics = vscode.languages.getDiagnostics(uri);
+            const errors = diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error);
+            if (errors.length > 0) {
+                provider.postMessage({
+                    type: 'diagnostic_event',
+                    payload: {
+                        filePath: uri.fsPath,
+                        error: errors[0].message
+                    }
+                });
+            }
+        }
+    });
+
     let disposable = vscode.commands.registerCommand('goalpilot.start', () => {
         vscode.window.showInformationMessage('GOALpilot started!');
     });
@@ -50,11 +67,14 @@ class SidebarProvider implements vscode.WebviewViewProvider {
         private readonly _userId: string
     ) {}
 
+    private _view?: vscode.WebviewView;
+
     public resolveWebviewView(
         webviewView: vscode.WebviewView,
         context: vscode.WebviewViewResolveContext,
         _token: vscode.CancellationToken,
     ) {
+        this._view = webviewView;
         webviewView.webview.options = {
             enableScripts: true,
             localResourceRoots: [this._extensionUri]
@@ -76,6 +96,12 @@ class SidebarProvider implements vscode.WebviewViewProvider {
                     break;
             }
         });
+    }
+
+    public postMessage(message: any) {
+        if (this._view) {
+            this._view.webview.postMessage(message);
+        }
     }
 
     private _getHtmlForWebview(webview: vscode.Webview) {

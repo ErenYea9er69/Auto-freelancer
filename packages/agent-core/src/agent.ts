@@ -12,18 +12,39 @@ export class Agent {
     private dbManager: DatabaseManager | null;
     private conversationId: string;
     private apiKey: string;
+    private contextFiles = new Set<string>();
+    public agentId: string;
 
-    constructor(ws: WebSocket, workspaceRoot: string, dbManager: DatabaseManager | null = null, apiKey: string = "") {
+    constructor(ws: WebSocket, workspaceRoot: string, dbManager: DatabaseManager | null = null, apiKey: string = "", agentId: string = "core") {
         this.ws = ws;
         this.workspaceRoot = workspaceRoot;
         this.dbManager = dbManager;
         this.apiKey = apiKey;
+        this.agentId = agentId;
         this.conversationId = crypto.randomUUID();
     }
 
     private sendTrace(message: string) {
         this.traces.push(message);
-        this.ws.send(JSON.stringify({ type: 'trace', payload: message }));
+        this.ws.send(JSON.stringify({ type: 'trace', agentId: this.agentId, payload: message }));
+    }
+
+    private updateGraph(filePath: string) {
+        const fileName = filePath.split(/[/\\]/).pop() || filePath;
+        if (!fileName || fileName === '.') return;
+        
+        this.contextFiles.add(fileName);
+        
+        const nodes = Array.from(this.contextFiles).map(name => ({ id: name, group: 1 }));
+        nodes.push({ id: 'Agent Core', group: 0 });
+        
+        const links = Array.from(this.contextFiles).map(name => ({ source: 'Agent Core', target: name }));
+
+        this.ws.send(JSON.stringify({ 
+            type: 'graph_update', 
+            agentId: this.agentId,
+            payload: { nodes, links } 
+        }));
     }
 
     public async runTask(task: string) {
@@ -65,10 +86,13 @@ export class Agent {
                 let toolResult = "";
                 try {
                     if (call.name === 'readFile') {
+                        this.updateGraph(args.filePath as string);
                         toolResult = await executeTool.readFile(args.filePath as string, this.workspaceRoot);
                     } else if (call.name === 'writeFile') {
+                        this.updateGraph(args.filePath as string);
                         this.ws.send(JSON.stringify({ 
                             type: 'proposal', 
+                            agentId: this.agentId,
                             payload: { type: 'writeFile', filePath: args.filePath, content: args.content } 
                         }));
                         
@@ -78,10 +102,10 @@ export class Agent {
                             const handler = (data: any) => {
                                 try {
                                     const msg = JSON.parse(data.toString());
-                                    if (msg.command === 'approve' && msg.filePath === args.filePath) {
+                                    if (msg.command === 'approve' && msg.filePath === args.filePath && msg.agentId === this.agentId) {
                                         this.ws.removeListener('message', handler);
                                         resolve('approved');
-                                    } else if (msg.command === 'reject' && msg.filePath === args.filePath) {
+                                    } else if (msg.command === 'reject' && msg.filePath === args.filePath && msg.agentId === this.agentId) {
                                         this.ws.removeListener('message', handler);
                                         resolve('rejected');
                                     }
@@ -98,10 +122,12 @@ export class Agent {
                             this.sendTrace(`User REJECTED write to ${args.filePath}`);
                         }
                     } else if (call.name === 'listDirectory') {
+                        this.updateGraph(args.dirPath as string);
                         toolResult = await executeTool.listDirectory(args.dirPath as string, this.workspaceRoot);
                     } else if (call.name === 'runCommand') {
                         this.ws.send(JSON.stringify({ 
                             type: 'proposal', 
+                            agentId: this.agentId,
                             payload: { type: 'runCommand', command: args.command } 
                         }));
                         
@@ -111,10 +137,10 @@ export class Agent {
                             const handler = (data: any) => {
                                 try {
                                     const msg = JSON.parse(data.toString());
-                                    if (msg.command === 'approve_run' && msg.runCommand === args.command) {
+                                    if (msg.command === 'approve_run' && msg.runCommand === args.command && msg.agentId === this.agentId) {
                                         this.ws.removeListener('message', handler);
                                         resolve('approved');
-                                    } else if (msg.command === 'reject_run' && msg.runCommand === args.command) {
+                                    } else if (msg.command === 'reject_run' && msg.runCommand === args.command && msg.agentId === this.agentId) {
                                         this.ws.removeListener('message', handler);
                                         resolve('rejected');
                                     }
@@ -133,6 +159,7 @@ export class Agent {
                     } else if (call.name === 'gitCommit') {
                         this.ws.send(JSON.stringify({ 
                             type: 'proposal', 
+                            agentId: this.agentId,
                             payload: { type: 'runCommand', command: `git checkout -b ${args.branchName} && git commit -m "${args.message}"` } 
                         }));
                         
@@ -142,10 +169,10 @@ export class Agent {
                             const handler = (data: any) => {
                                 try {
                                     const msg = JSON.parse(data.toString());
-                                    if (msg.command === 'approve_run') {
+                                    if (msg.command === 'approve_run' && msg.agentId === this.agentId) {
                                         this.ws.removeListener('message', handler);
                                         resolve('approved');
-                                    } else if (msg.command === 'reject_run') {
+                                    } else if (msg.command === 'reject_run' && msg.agentId === this.agentId) {
                                         this.ws.removeListener('message', handler);
                                         resolve('rejected');
                                     }
@@ -161,6 +188,15 @@ export class Agent {
                             toolResult = "User REJECTED the git commit. Try a different approach or ask for clarification.";
                             this.sendTrace(`User REJECTED git commit.`);
                         }
+                    } else if (call.name === 'delegateTask') {
+                        const subAgentName = args.agentName as string;
+                        this.sendTrace(`Spawning sub-agent: [${subAgentName}]...`);
+                        const subAgent = new Agent(this.ws, this.workspaceRoot, this.dbManager, this.apiKey, subAgentName);
+                        
+                        // Fire and forget, or we could await it. Fire and forget gives true swarm parallelism.
+                        subAgent.runTask(args.task as string).catch(e => console.error(`Sub-agent ${subAgentName} error:`, e));
+                        
+                        toolResult = `Successfully delegated task to sub-agent [${subAgentName}]. They are now working in parallel. Do not wait for them unless necessary. You can continue with other work.`;
                     } else {
                         toolResult = `Unknown tool: ${call.name}`;
                     }
@@ -189,6 +225,6 @@ export class Agent {
         if (this.dbManager) {
             await this.dbManager.saveConversation(this.conversationId, task.substring(0, 50), this.history, this.traces).catch(e => console.error("DB Save Error:", e));
         }
-        this.ws.send(JSON.stringify({ type: 'completed', payload: 'Task finished' }));
+        this.ws.send(JSON.stringify({ type: 'completed', agentId: this.agentId, payload: 'Task finished' }));
     }
 }

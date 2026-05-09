@@ -30,6 +30,22 @@ async function activate(context) {
     context.subscriptions.push(vscode.window.registerWebviewViewProvider('goalpilot-sidebar', provider, {
         webviewOptions: { retainContextWhenHidden: true }
     }));
+    // Feature 4: Proactive Ghost Mode
+    vscode.languages.onDidChangeDiagnostics(e => {
+        for (const uri of e.uris) {
+            const diagnostics = vscode.languages.getDiagnostics(uri);
+            const errors = diagnostics.filter(d => d.severity === vscode.DiagnosticSeverity.Error);
+            if (errors.length > 0) {
+                provider.postMessage({
+                    type: 'diagnostic_event',
+                    payload: {
+                        filePath: uri.fsPath,
+                        error: errors[0].message
+                    }
+                });
+            }
+        }
+    });
     let disposable = vscode.commands.registerCommand('goalpilot.start', () => {
         vscode.window.showInformationMessage('GOALpilot started!');
     });
@@ -46,7 +62,9 @@ class SidebarProvider {
         this._storagePath = _storagePath;
         this._userId = _userId;
     }
+    _view;
     resolveWebviewView(webviewView, context, _token) {
+        this._view = webviewView;
         webviewView.webview.options = {
             enableScripts: true,
             localResourceRoots: [this._extensionUri]
@@ -65,6 +83,11 @@ class SidebarProvider {
                     break;
             }
         });
+    }
+    postMessage(message) {
+        if (this._view) {
+            this._view.webview.postMessage(message);
+        }
     }
     _getHtmlForWebview(webview) {
         const scriptUri = webview.asWebviewUri(vscode.Uri.joinPath(this._extensionUri, 'webview-ui', 'build', 'assets', 'index.js'));
