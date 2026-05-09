@@ -1,0 +1,30 @@
+# Dependency directories
+node_modules/
+
+# TypeScript/build output
+dist/
+out/
+build/
+
+# VS Code extension packaging
+*.vsix
+
+# VS Code testing
+.vscode-test/
+
+# OS/Editor specific
+.DS_Store
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Env files
+.env
+.env.local
