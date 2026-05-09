@@ -1,0 +1,7 @@
+{
+  "name": "goalpilot-monorepo",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ]
+}

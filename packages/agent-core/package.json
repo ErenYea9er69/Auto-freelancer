@@ -1,0 +1,20 @@
+{
+  "name": "goalpilot-agent-core",
+  "version": "0.0.1",
+  "description": "Agent Core for GOALpilot",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "dev": "ts-node-dev src/index.ts"
+  },
+  "dependencies": {
+    "ws": "^8.16.0"
+  },
+  "devDependencies": {
+    "@types/node": "^18.x",
+    "@types/ws": "^8.5.10",
+    "typescript": "^5.x",
+    "ts-node-dev": "^2.0.0"
+  }
+}
